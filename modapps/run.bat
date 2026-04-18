@@ -1,0 +1,2 @@
+@REM node .
+@REM pause
