@@ -20,13 +20,14 @@ namespace Roblox.Website.Controllers
         public GameServerService gameServer { get; } = new();
 		public RSASignService rsaSign { get; } = new();
         public ForumsService forums { get; } = new();
-        // public CurrencyExchangeService currencyExchange { get; } = new();
+        public CurrencyExchangeService currencyExchange { get; } = new();
         public AbuseReportService abuseReport { get; } = new();
-        // public EconomyService economy { get; } = new();
+        public EconomyService economy { get; } = new();
         public CooldownService cooldown { get; } = new();
         public RobloxApi robloxApi { get; } = new();
         public ChatService chat { get; } = new();
 		public GameJoinService gameJoin { get; } = new();
         public RequestItemService requestItem { get; } = new();
+        public FilterService filter { get; } = new();
     }
 }
