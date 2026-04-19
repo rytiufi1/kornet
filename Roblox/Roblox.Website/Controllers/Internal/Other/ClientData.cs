@@ -246,10 +246,10 @@ public async Task<IActionResult> RCCNewApplication(
             case "AndroidApp":
                 json = System.IO.Path.Combine(Configuration.JsonDataDirectory, "AndroidApp.json");
                 break;
-            case "6sxp8X2Y02settingsislwkgoated":
+            case "6sxp8X2Y02lwkeueueeuww39":
                 json = System.IO.Path.Combine(Configuration.JsonDataDirectory, "RCCService.json");
                 break;
-            case "RCCServicesettingsislwkgoated":
+            case "RCCServicelwkeueueeuww39":
                 json = System.IO.Path.Combine(Configuration.JsonDataDirectory, "RCCService.json");
                 break;
             case "GD5Z5gO1n0gYX1P":

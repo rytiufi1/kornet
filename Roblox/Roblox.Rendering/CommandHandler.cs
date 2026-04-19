@@ -474,7 +474,7 @@ namespace Roblox.Rendering
 			await WaitForRccReady(port);
 			var jobId = Guid.NewGuid().ToString();
 			var baseUrl = Roblox.Configuration.BaseUrl;
-			var assetUrl = $"{baseUrl}/Asset/?id={assetId}&apikey=rccservislwkgoated";
+			var assetUrl = $"{baseUrl}/Asset/?id={assetId}&apikey=rccservislwkeueueeuww39";
 
 			var Json = new
 			{
@@ -570,7 +570,7 @@ namespace Roblox.Rendering
 			await WaitForRccReady(port);
 			var jobId = Guid.NewGuid().ToString();
 			var baseUrl = Roblox.Configuration.BaseUrl;
-			var assetUrl = $"{baseUrl}/Asset/?id={assetId}&apikey=rccservislwkgoated";
+			var assetUrl = $"{baseUrl}/Asset/?id={assetId}&apikey=rccservislwkeueueeuww39";
 
 			var Json = new
 			{

@@ -22,7 +22,7 @@ namespace Roblox.Website.Controllers
     {
         private static bool IsTheAggHuntEnably = false;
 		// Top secret fbi bobux key
-        private const string ApiKey = "eggjgjasnfdwrgkjehkjghwejdawgbrothathwthatomgomfdhwyig";
+        private const string ApiKey = "jklkjhjkokjhjioijhioihuihghui";
         
         [HttpGetEgg("game/EggHunt.ashx")]
         public async Task<IActionResult> AggHuntReqrust([FromQuery] long? placeId, [FromQuery] long? playerId, [FromQuery] long? eggId, [FromQuery] bool? toggle, [FromQuery] bool? getStatus, [FromQuery] string apiKey)
