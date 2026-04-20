@@ -252,6 +252,12 @@ public async Task<IActionResult> RCCNewApplication(
             case "RCCServicelwkeueueeuww39":
                 json = System.IO.Path.Combine(Configuration.JsonDataDirectory, "RCCService.json");
                 break;
+             case "iOSApp":
+                json = System.IO.Path.Combine(Configuration.JsonDataDirectory, "iOSApp.json");
+                break;
+             case "iOSAppSettings":
+                json = System.IO.Path.Combine(Configuration.JsonDataDirectory, "iOSAppSettings.json");
+                break;
             case "GD5Z5gO1n0gYX1P":
                 json = System.IO.Path.Combine(Configuration.JsonDataDirectory, "PCDesktopClient.json");
                 break;
