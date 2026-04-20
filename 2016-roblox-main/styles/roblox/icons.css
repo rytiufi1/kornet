@@ -32,6 +32,15 @@
 	display: inline-block;
 	vertical-align: middle;
 }
+.icon-nav-message2 {
+	background-image: url('/img/2019svg.svg');
+	background-repeat: no-repeat;
+	background-size: auto auto;
+	width: 28px;
+	height: 28px;
+	display: inline-block;
+	vertical-align: middle;
+}
 
 .icon-nav-menu {
 	background-position: 0 0;
