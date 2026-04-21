@@ -6,11 +6,27 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml;
 using Roblox;
-
+using System.IO;
+ 
 namespace Roblox.Rendering
 {
     public static class CommandHandler
     {
+public static async Task<Stream> RequestTextureThumbnail(long assetId, CancellationToken? ct = null) 
+    => await RenderWithArgs("Texture", new object[] { MakeAssetUrl(assetId), "Png", 420, 420 }, "Png", ct);
+
+public static async Task<Stream> RequestAssetThumbnail(long assetId, CancellationToken? ct = null) 
+    => await RenderWithArgs("Asset", new object[] { MakeAssetUrl(assetId), "Png", 420, 420 }, "Png", ct);
+
+public static async Task<Stream> RequestAssetMesh(long assetId, CancellationToken? ct = null) 
+    => await RenderWithArgs("Mesh", new object[] { MakeAssetUrl(assetId) }, "Obj", ct);
+
+public static async Task<Stream> RequestHeadThumbnail(long assetId, CancellationToken? ct = null) 
+    => await RenderWithArgs("Head", new object[] { MakeAssetUrl(assetId), "Png", 420, 420 }, "Png", ct);
+
+public static async Task<Stream> RequestAssetTeeShirt(long assetId, long contentId, CancellationToken? ct = null) 
+    => await RenderWithArgs("TeeShirt", new object[] { MakeAssetUrl(contentId), "Png", 420, 420 }, "Png", ct);
+
         private static SemaphoreSlim Rcc2020Lock { get; } = new(1, 1);
         private static Process? rccProcess;
         private static int? rccPort;
