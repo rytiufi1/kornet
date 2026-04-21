@@ -32,6 +32,7 @@
 	display: inline-block;
 	vertical-align: middle;
 }
+
 .icon-nav-message2 {
     background-image: url('/img/2019svg.svg');
     background-repeat: no-repeat;
@@ -40,8 +41,16 @@
     height: 28px;
     display: inline-block;
     vertical-align: middle;
+    
+
+    background-position: -28px -448px;
+}
+
+.icon-nav-message2:hover,
+.icon-nav-message2.active {
     background-position: 0px -448px;
 }
+
 
 
 .icon-nav-menu {
