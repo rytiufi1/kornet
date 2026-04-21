@@ -1027,55 +1027,85 @@ public class AssetsService : ServiceBase, IService
 	}
 
     #endregion
-public async Task RenderAssetAsync(long assetId, Models.Assets.Type assetType, CancellationToken? cancellationToken = null)
-{
-    try
-    {
-        if (assetType == Models.Assets.Type.Place)
-        {
-            await CreateGameThumbnail(assetId, null, cancellationToken);
-            return;
-        }
+	public async Task RenderAssetAsync(long assetId, Models.Assets.Type assetType, CancellationToken? cancellationToken = null)
+	{
+		List<Task> thumbRequests = new();
+		switch (assetType)
+		{
+			case Models.Assets.Type.Face:
+				thumbRequests.Add(CreateAssetTextureThumbnail(assetId, assetType, cancellationToken));
+				break;
+			case Models.Assets.Type.Shirt:
+			case Models.Assets.Type.Pants:
+				thumbRequests.Add(CreateAssetThumbnail(assetId, cancellationToken));
+				break;
+				
+			case Models.Assets.Type.TeeShirt:
+					thumbRequests.Add(CreateTeeShirtThumbnail(assetId, cancellationToken));
+					break;
+				
+			case Type.Head:
+                thumbRequests.Add(CreateHeadThumbnail(assetId, cancellationToken));
+                break;
+									
+		    case Type.Place:
+				thumbRequests.Add(CreateGameThumbnail(assetId, null, cancellationToken));
+				break;
+			
+			case Type.Mesh:
+				thumbRequests.Add(CreateMeshThumbnail(assetId, cancellationToken));
+                break;
 
-        var latestVersion = await GetLatestAssetVersion(assetId);
+			case Type.Hat:
+			case Type.Gear:
+			case Type.HairAccessory:
+			case Type.NeckAccessory:
+			case Type.ShoulderAccessory:
+			case Type.BackAccessory:
+			case Type.FrontAccessory:
+			case Type.FaceAccessory:
+			case Type.WaistAccessory:
+            
+            // ill do it later
 
-        IEnumerable<long>? packageAssetIds = null;
-        if (assetType == Models.Assets.Type.Package)
-            packageAssetIds = await GetPackageAssets(assetId);
+/* 			case Type.LeftArm:
+			case Type.LeftLeg:
+			case Type.RightArm:
+			case Type.RightLeg:
+			case Type.Torso: */
+				thumbRequests.Add(CreateAssetThumbnail(assetId, cancellationToken));
+				break;
+				 
+			case Type.LeftArm:
+			case Type.LeftLeg:
+			case Type.RightArm:
+			case Type.RightLeg:
+			case Type.Torso:
+				thumbRequests.Add(CreateBodyPartThumbnail(assetId, assetType, cancellationToken));
+				break;
+				
+			case Type.Package:
+				thumbRequests.Add(CreatePackageThumbnail(assetId, cancellationToken));
+				break;
 
-        long? teeShirtContentId = null;
-        if (assetType == Models.Assets.Type.TeeShirt)
-        {
-            if (latestVersion.contentId == null)
-                throw new Exception("TeeShirt has no contentId");
-           teeShirtContentId = latestVersion.contentId;
-        }
+			default:
+				Writer.Info(LogGroup.AssetRender, "Unexpected assetType {0}", assetType);
+				throw new Exception("Unexpected assetType: " + assetType);
+		}
 
-        var response = await Rendering.CommandHandler.RequestAssetThumbnailByType(assetId, assetType, teeShirtContentId, packageAssetIds, cancellationToken);
-        var key = await UploadAssetContent(response, Configuration.ThumbnailsDirectory, "png");
+		if (thumbRequests.Count == 0)
+			return;
 
-        var modStatus = assetType switch
-        {
-            Models.Assets.Type.TeeShirt => ModerationStatus.AwaitingApproval,
-            Models.Assets.Type.Shirt => ModerationStatus.AwaitingApproval,
-            Models.Assets.Type.Pants => ModerationStatus.AwaitingApproval,
-            Models.Assets.Type.Package => ModerationStatus.AwaitingApproval,
-            Models.Assets.Type.LeftArm => ModerationStatus.AwaitingApproval,
-            Models.Assets.Type.RightArm => ModerationStatus.AwaitingApproval,
-            Models.Assets.Type.LeftLeg => ModerationStatus.AwaitingApproval,
-            Models.Assets.Type.RightLeg => ModerationStatus.AwaitingApproval,
-            Models.Assets.Type.Torso => ModerationStatus.AwaitingApproval,
-            _ => ModerationStatus.ReviewApproved,
-        };
-
-        await InsertOrReplaceThumbnail(assetId, latestVersion.assetVersionId, key, modStatus);
-        Console.WriteLine("End render request for asset {0} (successful)", assetId);
-    }
-    catch (Exception e)
-    {
-        Console.WriteLine("[error] Render failed for {0}:{1}: {2}", assetId, assetType, e.Message);
-    }
-}
+		try
+		{
+			await Task.WhenAll(thumbRequests);
+			Console.WriteLine("End render request for asset {0} (successful)", assetId);
+		}
+		catch (System.Exception e)
+		{
+			Console.WriteLine("[error] Render failed for {0}:{1}: {2}", assetId, assetType, e.Message);
+		}
+	}
 
     public void RenderAsset(long assetId, Models.Assets.Type assetType)
     {
