@@ -11,6 +11,7 @@ const useStyles = createUseStyles({
   linkEntry: {
     marginBottom: '0',
     paddingTop: '5px',
+    color: props => (props.theme === themeType.obc2016 || props.theme === themeType.dark) ? '#ffffff' : '#4a4a4a',
   },
   name: {
     fontSize: '16px',
@@ -22,8 +23,11 @@ const useStyles = createUseStyles({
     },
   },
   link: {
-    color: props => (props.theme === themeType.obc2016 || props.theme === themeType.dark) ? '#ffffff' : '#4a4a4a',
+    color: 'inherit',
     textDecoration: 'none',
+  },
+  icon: {
+    color: props => (props.theme === themeType.obc2016 || props.theme === themeType.dark) ? '#ffffff' : '#4a4a4a',
   },
   countWrapper: {
     float: 'right',
@@ -50,7 +54,7 @@ const LinkEntry = props => {
       <a className={s.link}>
         <div className={s.wrapper + ' hover-' + props.icon}>
           <p className={s.linkEntry}>
-            <span className={props.icon}></span> 
+            <span className={props.icon + ' ' + s.icon}></span> 
             <span className={s.name}>{props.name}</span>
             {props.count ? (
               <span className={s.countWrapper}>
