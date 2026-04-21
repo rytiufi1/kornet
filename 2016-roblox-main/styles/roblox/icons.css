@@ -42,15 +42,13 @@
     display: inline-block;
     vertical-align: middle;
     
-
-    background-position: -28px -448px;
+    background-position: 0px -448px;
 }
 
 .icon-nav-message2:hover,
 .icon-nav-message2.active {
-    background-position: 0px -448px;
+    background-position: -28px -448px;
 }
-
 
 
 .icon-nav-menu {
