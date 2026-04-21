@@ -98,7 +98,6 @@ const useLoginAreaStyles = createUseStyles({
     listStyle: 'none',
   },
   ageNameContainer: {
-    float: "left",
     color: "#000 !important",
     marginRight: "10px",
     fontSize: "12px",
@@ -109,25 +108,19 @@ const useLoginAreaStyles = createUseStyles({
   },
   nameLink: {
     color: "#000 !important",
-    display: "inline",
     textDecoration: "none",
+    '&:hover $nameSpan': {
+      textDecoration: 'underline',
+    },
   },
   nameSpan: {
     fontWeight: 500,
-    color: "#000 !important",
-    display: "inline",
-    textDecoration: 'none',
-    '&:hover': {
-      textDecoration: 'underline',
-    },
     "&:after": {
       content: '": "',
     },
   },
   ageSpan: {
     fontWeight: 500,
-    color: "#000 !important",
-    display: "inline",
   },
   messagesContainer: {
     height: "40px",
@@ -196,12 +189,12 @@ const LoggedInArea = () => {
     <div className={s.linkContainerCol}>
       <div className={`${s.row} row`}>
         <ul className={s.linkContainer}>
-          <div className={`${s.ageNameContainer} ${s.hideOnMobile}`}>
+          <li className={`${s.ageNameContainer} ${s.hideOnMobile}`}>
             <a href={`/users/${authStore.userId}/profile`} className={s.nameLink}>
               <span className={s.nameSpan}>{authStore.username}</span>
             </a>
             <span className={s.ageSpan}>13+</span>
-          </div>
+          </li>
 
           <li className={`${s.messagesContainer} ${s.hideOnMobile}`}>
             <a href="/My/Messages" className={s.messagesLink}>
