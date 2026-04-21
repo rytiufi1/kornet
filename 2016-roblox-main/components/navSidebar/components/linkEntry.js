@@ -1,6 +1,6 @@
 import { createUseStyles } from "react-jss";
 import Link from "../../link";
-import { themeType } from "../../services/theme";
+import { themeType } from "../../../services/theme";
 
 const formatCount = num => {
   if (num > 99) return '99+';
