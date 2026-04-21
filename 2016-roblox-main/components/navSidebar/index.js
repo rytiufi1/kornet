@@ -15,7 +15,7 @@ const useNavSideBarStyles = createUseStyles({
   },
   card: {
     width: '175px',
-   backgroundColor: p => (p.theme === themeType.obc2016 || p.theme === themeType.dark) ? '#252525' : '#dee1e3',
+    backgroundColor: p => (p.theme === themeType.obc2016 || p.theme === themeType.dark) ? '#252525' : '#dee1e3',
     height: '100vh',
     paddingLeft: '10px',
     paddingRight: '10px',
@@ -85,7 +85,9 @@ const NavSideBar = props => {
   });
   const [userData, setUserData] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
-  const s = useNavSideBarStyles({ theme: getTheme() || themeType.default });
+
+  const currentTheme = getTheme() || themeType.default;
+  const s = useNavSideBarStyles({ theme: currentTheme });
 
   useEffect(() => {
     const handleResize = () => {
@@ -125,7 +127,7 @@ const NavSideBar = props => {
 
   const paddingTop = (mainNavBarRef?.current && mainNavBarRef.current.clientHeight + 'px') || '40px';
 
- const isDesktop = false; //dimensions.width > 1300;
+  const isDesktop = false; //dimensions.width > 1300;
   
   if (!isDesktop && navStore.isSidebarOpen === false) {
     return null;
@@ -143,16 +145,16 @@ const NavSideBar = props => {
           <p className={s.username}>{authStore.username}</p>
         </a>
         <div className={s.divider} />
-        <LinkEntry name='Home' url='/home' icon='icon-nav-home' />
-        <LinkEntry name='Profile' url={'/users/' + authStore.userId + '/profile'} icon='icon-nav-profile' />
-        <LinkEntry name='Messages' url='/My/Messages' icon='icon-nav-message' count={authStore.notificationCount.messages} />
-        <LinkEntry name='Friends' url={'/users/' + authStore.userId + '/friends'} icon='icon-nav-friends' count={authStore.notificationCount.friendRequests} />
-        <LinkEntry name='Avatar' url='/My/Avatar' icon='icon-nav-charactercustomizer' />
-        <LinkEntry name='Inventory' url={'/users/' + authStore.userId + '/inventory'} icon='icon-nav-inventory' />
-        <LinkEntry name='Trade' url='/My/Trades.aspx' icon='icon-nav-trade' count={authStore.notificationCount.trades} />
-        <LinkEntry name='Groups' url='/My/Groups.aspx' icon='icon-nav-group' />
-        {userData?.isStaff && <LinkEntry name='Control Panel' url='/admin' icon='icon-nav-settings' count={pendingCount} />}
-        <LinkEntry name='Promocodes' url='/promocodes' icon='icon-nav-forum' />
+        <LinkEntry name='Home' url='/home' icon='icon-nav-home' theme={currentTheme} />
+        <LinkEntry name='Profile' url={'/users/' + authStore.userId + '/profile'} icon='icon-nav-profile' theme={currentTheme} />
+        <LinkEntry name='Messages' url='/My/Messages' icon='icon-nav-message' count={authStore.notificationCount.messages} theme={currentTheme} />
+        <LinkEntry name='Friends' url={'/users/' + authStore.userId + '/friends'} icon='icon-nav-friends' count={authStore.notificationCount.friendRequests} theme={currentTheme} />
+        <LinkEntry name='Avatar' url='/My/Avatar' icon='icon-nav-charactercustomizer' theme={currentTheme} />
+        <LinkEntry name='Inventory' url={'/users/' + authStore.userId + '/inventory'} icon='icon-nav-inventory' theme={currentTheme} />
+        <LinkEntry name='Trade' url='/My/Trades.aspx' icon='icon-nav-trade' count={authStore.notificationCount.trades} theme={currentTheme} />
+        <LinkEntry name='Groups' url='/My/Groups.aspx' icon='icon-nav-group' theme={currentTheme} />
+        {userData?.isStaff && <LinkEntry name='Control Panel' url='/admin' icon='icon-nav-settings' count={pendingCount} theme={currentTheme} />}
+        <LinkEntry name='Promocodes' url='/promocodes' icon='icon-nav-forum' theme={currentTheme} />
         <a href='/BuildersClub/Upgrade.ashx' className={s.upgradeNowButton}>Upgrade Now</a>
       </div>
     </div>
