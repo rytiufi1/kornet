@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml;
+using Roblox.Models.Assets;
 using Roblox;
 
 namespace Roblox.Rendering
