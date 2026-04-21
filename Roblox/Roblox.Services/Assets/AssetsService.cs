@@ -1048,7 +1048,7 @@ public async Task RenderAssetAsync(long assetId, Models.Assets.Type assetType, C
         {
             if (latestVersion.contentId == null)
                 throw new Exception("TeeShirt has no contentId");
-            teeShirtContentId = latestVersion.contentId.Value;
+           teeShirtContentId = latestVersion.contentId;
         }
 
         var response = await Rendering.CommandHandler.RequestAssetThumbnailByType(assetId, assetType, teeShirtContentId, packageAssetIds, cancellationToken);
