@@ -1,5 +1,6 @@
 import { createUseStyles } from "react-jss";
 import Link from "../../link";
+import { themeType } from "../../services/theme";
 
 const formatCount = num => {
   if (num > 99) return '99+';
@@ -21,7 +22,7 @@ const useStyles = createUseStyles({
     },
   },
   link: {
-    color: 'white',
+    color: p => (p.theme === themeType.obc2016 || p.theme === themeType.dark) ? '#ffffff' : '#4a4a4a',
   },
   countWrapper: {
     float: 'right',
@@ -37,11 +38,11 @@ const useStyles = createUseStyles({
 
 /**
  * Nav sidebar link entry
- * @param {{count?: number; name: string; icon: string; url: string;}} props 
+ * @param {{count?: number; name: string; icon: string; url: string; theme: string}} props 
  * @returns 
  */
 const LinkEntry = props => {
-  const s = useStyles();
+  const s = useStyles(props);
   return <Link href={props.url}>
     <a className={s.link}>
       <div className={s.wrapper + ' hover-' + props.icon}>
