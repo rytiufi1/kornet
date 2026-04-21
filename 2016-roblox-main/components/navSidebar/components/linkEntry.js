@@ -22,7 +22,8 @@ const useStyles = createUseStyles({
     },
   },
   link: {
-    color: p => (p.theme === themeType.obc2016 || p.theme === themeType.dark) ? '#ffffff' : '#4a4a4a',
+    color: props => (props.theme === themeType.obc2016 || props.theme === themeType.dark) ? '#ffffff' : '#4a4a4a',
+    textDecoration: 'none',
   },
   countWrapper: {
     float: 'right',
@@ -38,23 +39,29 @@ const useStyles = createUseStyles({
 
 /**
  * Nav sidebar link entry
- * @param {{count?: number; name: string; icon: string; url: string; theme: string}} props 
+ * @param {{count?: number; name: string; icon: string; url: string; theme: any}} props 
  * @returns 
  */
 const LinkEntry = props => {
   const s = useStyles(props);
-  return <Link href={props.url}>
-    <a className={s.link}>
-      <div className={s.wrapper + ' hover-' + props.icon}>
-        <p className={s.linkEntry}>
-          <span className={props.icon}></span> <span className={s.name}>{props.name}</span>
-          {props.count && <span className={s.countWrapper}>
-          <span className={s.count}>{formatCount(props.count)}</span>
-        </span> || null}
-        </p>
-      </div>
-    </a>
-  </Link>
+  
+  return (
+    <Link href={props.url}>
+      <a className={s.link}>
+        <div className={s.wrapper + ' hover-' + props.icon}>
+          <p className={s.linkEntry}>
+            <span className={props.icon}></span> 
+            <span className={s.name}>{props.name}</span>
+            {props.count ? (
+              <span className={s.countWrapper}>
+                <span className={s.count}>{formatCount(props.count)}</span>
+              </span>
+            ) : null}
+          </p>
+        </div>
+      </a>
+    </Link>
+  );
 }
 
 export default LinkEntry;
