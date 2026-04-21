@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createUseStyles } from "react-jss";
-import AuthenticationStore from "../../stores/authentication";
+import { getTheme, themeType } from "../../services/theme";
+import AuthenticationStore from "../../stores/authentication"; 
 import NavigationStore from "../../stores/navigation";
 import LinkEntry from "./components/linkEntry";
 import request, { getFullUrl } from "../../lib/request";
@@ -14,11 +15,11 @@ const useNavSideBarStyles = createUseStyles({
   },
   card: {
     width: '175px',
-    background: '#252525',
+   backgroundColor: p => (p.theme === themeType.obc2016 || p.theme === themeType.dark) ? '#252525' : '#dee1e3',
     height: '100vh',
     paddingLeft: '10px',
     paddingRight: '10px',
-    color: '#ffffff',
+    color: '#ffffff', 
   },
   userWrapper: {
     display: 'flex',
@@ -43,14 +44,14 @@ const useNavSideBarStyles = createUseStyles({
   username: {
     fontSize: '16px',
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: p => (p.theme === themeType.obc2016 || p.theme === themeType.dark) ? '#ffffff' : '#4a4a4a',
     margin: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   divider: {
-    borderBottom: '2px solid #c3c3c3',
+    borderBottom: p => `2px solid ${(p.theme === themeType.obc2016 || p.theme === themeType.dark) ? '#3d3d3d' : '#c3c3c3'}`,
     height: '2px',
     width: '100%',
     marginBottom: '5px',
@@ -84,7 +85,7 @@ const NavSideBar = props => {
   });
   const [userData, setUserData] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
-  const s = useNavSideBarStyles();
+  const s = useNavSideBarStyles({ theme: getTheme() || themeType.default });
 
   useEffect(() => {
     const handleResize = () => {
@@ -95,7 +96,7 @@ const NavSideBar = props => {
     };
 
     window.addEventListener('resize', handleResize);
-
+    
     const getStaffData = async () => {
       try {
         const response = await request('GET', getFullUrl('users', '/v1/users/authenticated'));
@@ -124,8 +125,8 @@ const NavSideBar = props => {
 
   const paddingTop = (mainNavBarRef?.current && mainNavBarRef.current.clientHeight + 'px') || '40px';
 
-  const isDesktop = false; //dimensions.width > 1300;
-
+ const isDesktop = false; //dimensions.width > 1300;
+  
   if (!isDesktop && navStore.isSidebarOpen === false) {
     return null;
   }
