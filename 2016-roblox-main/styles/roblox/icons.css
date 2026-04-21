@@ -8,7 +8,6 @@
 */
 .icon-default-navigation,
 .icon-nav-menu,
-.icon-nav-robux,
 .icon-nav-tix,
 .icon-nav-settings,
 .icon-nav-search,
@@ -51,6 +50,40 @@
 }
 
 
+.icon-nav-robux, 
+.icon-robux-28x28 {
+    background-image: url('/img/f8669ed5cb8a275bf1aacfcfe51b0a18-economy_28x28_light.svg');
+    background-repeat: no-repeat;
+    background-size: 56px 84px;
+    width: 28px;
+    height: 28px;
+    display: inline-block;
+    vertical-align: middle;
+
+    background-position: 0 0;
+}
+
+
+.icon-nav-robux:hover,
+.icon-nav-robux.selected,
+.icon-nav-robux:active,
+a:hover .icon-nav-robux {
+    background-position: 0 -56px;
+    cursor: pointer;
+}
+
+
+.icon-robux-gold-28x28,
+.icon-nav-robux.gold {
+    background-position: 0 -28px;
+}
+
+
+.icon-robux-white,
+.icon-nav-robux.white {
+    background-position: -28px 0;
+}
+
 .icon-nav-menu {
 	background-position: 0 0;
 }
@@ -64,18 +97,7 @@ a:hover .icon-nav-menu {
 	background-position: -28px 0;
 }
 
-.icon-nav-robux {
-	background-position: 0 -28px;
-}
 
-.icon-nav-robux:hover {
-	background-position: -28px -28px;
-}
-
-button:hover .icon-nav-robux,
-a:hover .icon-nav-robux {
-	background-position: -28px -28px;
-}
 
 .icon-nav-tix {
 	background-position: 0 -56px;
