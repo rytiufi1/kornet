@@ -3,7 +3,6 @@
 	import Main from "../components/templates/Main.svelte";
 	import request from "../lib/request";
 	let disabled = false;
-	let rerenderAllDisabled = false;
 	let errorMessage: string | undefined;
 	import * as rank from "../stores/rank";
     rank.promise.then(() => {
@@ -53,34 +52,6 @@
 							disabled = false;
 						});
 				}}>Submit</button
-			>
-		</div>
-		<div class="col-12 mt-3">
-			<button
-				class="btn btn-danger"
-				disabled={disabled || rerenderAllDisabled}
-				on:click={(e) => {
-					e.preventDefault();
-					if (disabled || rerenderAllDisabled) return;
-					if (!confirm("Queue re-render for all non-image assets? This may take a while.")) return;
-					rerenderAllDisabled = true;
-					request
-						.post("/asset/re-render-all")
-						.then((d) => {
-							const queued = d?.data?.queued;
-							alert(
-								typeof queued === "number"
-									? `Queued ${queued} assets for re-render.`
-									: "Queued all assets for re-render."
-							);
-						})
-						.catch((e) => {
-							errorMessage = e.message;
-						})
-						.finally(() => {
-							rerenderAllDisabled = false;
-						});
-				}}>Re-Render All Items</button
 			>
 		</div>
 	</div>
