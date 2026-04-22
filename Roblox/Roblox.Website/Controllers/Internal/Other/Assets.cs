@@ -31,6 +31,11 @@ namespace Roblox.Website.Controllers
     [MVC.Route("/")]
     public class Assets : ControllerBase 
     {		
+        public static readonly HashSet<long> StarterPlaceIds = new HashSet<long>
+        {
+            3108, 3097, 2958, 3079, 3077, 3109, 3096, 3112, 3113, 3099, 3111, 3110, 3107, 3068
+        };
+
 	    [HttpGet("asset/shader")]
         public async Task<MVC.ActionResult> GetShaderAsset(long id)
         {
@@ -358,9 +363,13 @@ namespace Roblox.Website.Controllers
                     }
                     break;
                 default:
-                    // anything else requires auth
                     var ok = false;
-                    if (isRcc)
+                    if (StarterPlaceIds.Contains(assetId))
+                    {
+                        ok = true;
+                        encryptionEnabled = false;
+                    }
+                    else if (isRcc)
                     {
                         encryptionEnabled = false;
 						ok = true;
@@ -568,4 +577,4 @@ namespace Roblox.Website.Controllers
             return Content(Newtonsoft.Json.JsonConvert.SerializeObject(assetReturnInfo), "application/json");
         }
 	}
-}	
+}
