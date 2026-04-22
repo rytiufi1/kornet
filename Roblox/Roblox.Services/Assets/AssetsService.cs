@@ -682,6 +682,14 @@ public class AssetsService : ServiceBase, IService
         await InsertOrReplaceThumbnail(assetId, latestVersion.assetVersionId, key, ModerationStatus.ReviewApproved);
     }
 
+    private async Task CreateAssetThumbnailRcc2020(long assetId, string renderType, CancellationToken? cancellationToken = null)
+    {
+        var latestVersion = await GetLatestAssetVersion(assetId);
+        var response = await Rendering.CommandHandler.RequestAssetThumbnailRcc2020(assetId, renderType, "Png", cancellationToken);
+        var key = await UploadAssetContent(response, Configuration.ThumbnailsDirectory, "png");
+        await InsertOrReplaceThumbnail(assetId, latestVersion.assetVersionId, key, ModerationStatus.ReviewApproved);
+    }
+
     public async Task UpdateAsset3DThumbnail(long assetId, string? fileName)
     {
         await db.ExecuteAsync("UPDATE asset_thumbnail SET content_3d_url = :url WHERE asset_id = :id", new
@@ -1054,6 +1062,18 @@ public class AssetsService : ServiceBase, IService
 			
 			case Type.Mesh:
 				thumbRequests.Add(CreateMeshThumbnail(assetId, cancellationToken));
+                break;
+            
+            case Type.Model:
+                thumbRequests.Add(CreateAssetThumbnailRcc2020(assetId, "Model", cancellationToken));
+                break;
+
+            case Type.Animation:
+                thumbRequests.Add(CreateAssetThumbnailRcc2020(assetId, "Animation", cancellationToken));
+                break;
+
+            case Type.Video:
+                thumbRequests.Add(CreateAssetThumbnailRcc2020(assetId, "Video", cancellationToken));
                 break;
 
 			case Type.Hat:

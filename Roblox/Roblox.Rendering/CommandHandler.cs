@@ -757,6 +757,20 @@ namespace Roblox.Rendering
             }, cancellationToken);
         }
 
+        public static async Task<Stream> RequestAssetThumbnailRcc2020(long assetId, string renderType, string format = "Png", CancellationToken? cancellationToken = null)
+        {
+            await Rcc2020Lock.WaitAsync(cancellationToken ?? CancellationToken.None);
+
+            try
+            {
+                return await RenderRcc2020Asset(assetId, renderType, format, cancellationToken);
+            }
+            finally
+            {
+                Rcc2020Lock.Release();
+            }
+        }
+
         public static async Task<Stream> RequestAssetThumbnail3D(long assetId, CancellationToken? cancellationToken = null)
         {
             await Rcc2020Lock.WaitAsync(cancellationToken ?? CancellationToken.None);
