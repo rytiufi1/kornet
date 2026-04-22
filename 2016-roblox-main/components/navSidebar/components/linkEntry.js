@@ -53,7 +53,7 @@ const LinkEntry = props => {
     <Link href={props.url}>
       <a className={s.link}>
         <div className={s.wrapper + ' hover-' + props.icon}>
-          <p className={s.linkEntry}>
+          <p className={`${s.linkEntry} font-header-2 nav-menu-title text-header`}>
             <span className={props.icon + ' ' + s.icon}></span> 
             <span className={s.name}>{props.name}</span>
             {props.count ? (
