@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { createUseStyles } from "react-jss";
+import { getBaseUrl } from "../../../lib/request";
+import GameDetailsStore from "../stores/gameDetailsStore";
+import AuthenticationStore from "../../../stores/authentication";
 
 const useStyles = createUseStyles({
     container: {
@@ -34,6 +37,8 @@ const useStyles = createUseStyles({
         fontSize: '14px',
         color: '#343434',
         cursor: 'pointer',
+        textDecoration: 'none',
+        display: 'block',
         '&:hover': {
             backgroundColor: '#f2f2f2',
         }
@@ -43,6 +48,11 @@ const useStyles = createUseStyles({
 const Settings = ({ placeId }) => {
     const [isOpen, setIsOpen] = useState(false);
     const s = useStyles();
+    const store = GameDetailsStore.useContainer();
+    const auth = AuthenticationStore.useContainer();
+
+    const isOwner = store.details.creatorType === 'User' && store.details.creatorTargetId === auth.userId;
+    const isCopyingAllowed = store.placeDetails?.isCopyingAllowed;
 
     return (
         <div className={s.container}>
@@ -53,9 +63,16 @@ const Settings = ({ placeId }) => {
             />
             {isOpen && (
                 <div className={s.dropdown}>
-                    <a href={`/places/${placeId}/update`} style={{ textDecoration: 'none' }}>
-                        <div className={s.menuItem}>Configure this Place</div>
-                    </a>
+                    {isOwner && (
+                        <a href={`/places/${placeId}/update`} className={s.menuItem}>
+                            Configure this Place
+                        </a>
+                    )}
+                    {isCopyingAllowed && (
+                        <a href={`${getBaseUrl()}Asset/?id=${placeId}`} download className={s.menuItem}>
+                            Download place
+                        </a>
+                    )}
                 </div>
             )}
         </div>

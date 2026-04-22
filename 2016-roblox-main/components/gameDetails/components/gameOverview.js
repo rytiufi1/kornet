@@ -1,7 +1,6 @@
 import React from "react";
 import { createUseStyles } from "react-jss";
 import AuthenticationStore from "../../../stores/authentication";
-import GearDropdown from "../../gearDropdown";
 import GameDetailsStore from "../stores/gameDetailsStore";
 import BuilderDetails from "./builderDetails";
 import Description from "./description";
@@ -56,17 +55,19 @@ const useStyles = createUseStyles({
     minHeight: '350px',
   },
 })
-
+  /*istg washed used ai for every shi he made liek he fucking retarded bro */
 const GameOverview = props => {
   const s = useStyles();
   const store = GameDetailsStore.useContainer();
   const auth = AuthenticationStore.useContainer();
+
   if (!store.details || !store.placeDetails || !store.universeDetails) return null;
 
-  const showSettings = store.details.creatorType === 'User' && store.details.creatorTargetId === auth.userId;
+  const isOwner = store.details.creatorType === 'User' && store.details.creatorTargetId === auth.userId;
+  const isCopyingAllowed = store.placeDetails?.isCopyingAllowed;
+  const showSettings = isOwner || isCopyingAllowed;
 
   return <div className='row'>
-    {/* Left Column: Thumbnails */}
     <div className='col-12 col-lg-8'>
       <GameThumbnails />
     </div>
@@ -89,11 +90,6 @@ const GameOverview = props => {
         {store.universeDetails ? <Favorite assetId={store.details.id} favoriteCount={store.universeDetails.favoritedCount} /> : null}
         <Follow />
         <Vote placeId={store.details.id} />
-        {store.placeDetails?.isCopyingAllowed ? (
-          <a href={`${getBaseUrl()}Asset/?id=${store.details.id}`} download className='text-decoration-none'>
-            Download place
-          </a>
-        ) : null}
       </div>
     </div>
   </div>
