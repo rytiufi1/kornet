@@ -382,17 +382,17 @@ public class GamesService : ServiceBase, IService
 		return result;
 	}
 	
-	public async Task SetRigType(long placeId, string rigType)
-	{
-		if (rigType != "MorphToR6" && rigType != "MorphToR15" && rigType != "playerChoice" && rigType != "PlayerChoice")
-			throw new RobloxException(400, 0, "Rig Type must be MorphToR6, MorphToR15 or PlayerChoice");
-		
-		await db.ExecuteAsync("UPDATE asset_place SET rig_Type = @rigType WHERE asset_id = @id", new
-		{
-			id = placeId,
-			rigType = rigType,
-		});
-	}
+    public async Task SetRigType(long placeId, string rigType)
+    {
+        if (rigType != "MorphToR6" && rigType != "MorphToR15" && rigType != "playerChoice" && rigType != "PlayerChoice")
+            throw new RobloxException(400, 0, "Rig Type must be MorphToR6, MorphToR15 or PlayerChoice");
+        
+        await db.ExecuteAsync("UPDATE asset_place SET rig_Type = @rigType WHERE asset_id = @id", new
+        {
+            id = placeId,
+            rigType = rigType,
+        });
+    }
 
     public async Task<IEnumerable<PlaceEntry>> MultiGetPlaceDetails(IEnumerable<long> placeIds)
     {

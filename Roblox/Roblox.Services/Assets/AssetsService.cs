@@ -2108,9 +2108,17 @@ WHERE asset_type = :asset_type AND asset.id < :id AND NOT asset.is_18_plus ORDER
             "SELECT asset_type FROM asset WHERE id = :id", new { id = assetId });
         if (assetType == (int)Type.Place)
         {
-            using var games = ServiceProvider.GetOrCreate<GamesService>(this);
-            await games.SetPlaceAllowsPublicCopy(assetId, isCopyingAllowed);
+            await db.ExecuteAsync(
+                "UPDATE asset_place SET allow_place_copy = :allow WHERE asset_id = :id",
+                new { allow = isCopyingAllowed, id = assetId });
         }
+    }
+
+    public async Task<bool> GetPlaceAllowsPublicCopy(long placeId)
+    {
+        var v = await db.QuerySingleOrDefaultAsync<bool?>(
+            "SELECT allow_place_copy FROM asset_place WHERE asset_id = :id LIMIT 1", new { id = placeId });
+        return v == true;
     }
 
     public async Task UpdateItemIsForSale(long assetId, bool isForSale)

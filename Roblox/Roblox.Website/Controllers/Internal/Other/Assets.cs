@@ -359,7 +359,7 @@ namespace Roblox.Website.Controllers
                     break;
                 default:
                     if (details.assetType == Type.Place
-                        && await services.games.GetPlaceAllowsPublicCopy(assetId)
+                        && await services.assets.GetPlaceAllowsPublicCopy(assetId)
                         && latestVersion.contentUrl != null)
                     {
                         assetContent = await services.assets.GetAssetContent(latestVersion.contentUrl);
