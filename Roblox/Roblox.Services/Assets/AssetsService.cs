@@ -564,14 +564,18 @@ public class AssetsService : ServiceBase, IService
 		var latestVersion = await GetLatestAssetVersion(assetId);
         var packageAssets = await GetPackageAssets(assetId);
 
-		var assets = new List<long>();
+		var assets = new List<string>();
 
-        assets.Add(Configuration.PackageShirtAssetId);
-		assets.Add(Configuration.PackagePantsAssetId);
+        assets.Add($"{Configuration.PackageShirtAssetId}");
+		assets.Add($"{Configuration.PackagePantsAssetId}");
         foreach (var asset in packageAssets)
         {
-            assets.Add(asset);
+            assets.Add($"{asset}");
         }
+
+        var assetUrlsString = string.Join(";", 
+            assets.Select(id => $"{Configuration.BaseUrl}/v1/asset/?id={id}")
+        );
 
 		var charApp = $"{Configuration.BaseUrl}/v1.1/avatar-fetch?placeId=0&userId=0";
 		var port = await StartRccService();
@@ -582,15 +586,16 @@ public class AssetsService : ServiceBase, IService
 			Mode = "Thumbnail",
 			Settings = new
 			{
-				Type = "Avatar_R15_Action_Package",
+				Type = "Package",
 				Arguments = new object[]
 				{
+                    assetUrlsString,
 					Configuration.BaseUrl,
-					charApp,
 					"Png",
 					840,
 					840,
-					assets.ToArray()
+                    $"{Configuration.BaseUrl}/v1/asset?id=1785197",
+                    ""
 				}
 			}
 		};
@@ -907,9 +912,13 @@ public class AssetsService : ServiceBase, IService
 			_ => throw new ArgumentException("Bad asset type for body part thumb")
 		};
 
-		var assetUrl = $"{Configuration.BaseUrl}/v1/asset/?id={assetId}";
-		var customUrl = $"{Configuration.BaseUrl}/v1/asset/?id={clothingId}";
-		var r6RigUrl = $"{Configuration.BaseUrl}/v1/asset?id=1785197";
+		var assets = new List<long>
+		{
+			assetId,
+			clothingId
+		};
+
+		var charApp = $"{Configuration.BaseUrl}/v1.1/avatar-fetch?placeId=0&userId=0";
 		var port = await StartRccService();
 		var jobId = Guid.NewGuid().ToString();
 
@@ -918,16 +927,15 @@ public class AssetsService : ServiceBase, IService
 			Mode = "Thumbnail",
 			Settings = new
 			{
-				Type = "BodyPart",
+				Type = "Avatar_R15_Action_Package",
 				Arguments = new object[]
 				{
-					assetUrl,
 					Configuration.BaseUrl,
+					charApp,
 					"Png",
 					840,
 					840,
-					r6RigUrl,
-					customUrl,
+					assets.ToArray()
 				}
 			}
 		};
