@@ -531,7 +531,34 @@ public IActionResult OAuthAuthorize([FromQuery] string? state = "", [FromQuery(N
     {
 		var qs = HttpContext.Request.QueryString.HasValue ? HttpContext.Request.QueryString.Value : "";
 		var returnUrl = Uri.EscapeDataString($"/oauth/v1/authorize{qs}");
-		return Redirect($"/UnsecuredContent/index.html?returnUrl={returnUrl}");
+		var iframeUrl = $"/UnsecuredContent/index.html?returnUrl={returnUrl}";
+		var loginHtml = $@"<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>OAuth Login</title>
+    <style>
+        html, body {{
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #111;
+        }}
+        iframe {{
+            border: 0;
+            width: 100%;
+            height: 100%;
+        }}
+    </style>
+</head>
+<body>
+    <iframe src=""{iframeUrl}"" title=""OAuth Login""></iframe>
+</body>
+</html>";
+		return Content(loginHtml, "text/html");
     }
 
 	PruneExpiredOAuthCodes();

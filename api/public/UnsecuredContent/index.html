@@ -90,8 +90,13 @@ function getCookie(name) {
 
 function navigateTarget(url) {
     if (window !== window.top) {
-        window.parent.postMessage({ type: 'navigate', url: url }, '*');
-        return;
+        try {
+            window.top.location.href = url;
+            return;
+        } catch (e) {
+            window.parent.postMessage({ type: 'navigate', url: url }, '*');
+            return;
+        }
     }
     window.location.href = url;
 }
