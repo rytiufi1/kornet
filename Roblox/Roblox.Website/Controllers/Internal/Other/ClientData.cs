@@ -1,14 +1,20 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Roblox.Models.Users;
+using Roblox.Services.Exceptions;
 using Roblox.Website.Middleware;
 using Roblox.Services.App.FeatureFlags;
+using Roblox.Exceptions;
 using BadRequestException = Roblox.Exceptions.BadRequestException;
 using MVC = Microsoft.AspNetCore.Mvc;
 
@@ -17,7 +23,133 @@ namespace Roblox.Website.Controllers
     [MVC.ApiController]
     [MVC.Route("/")]
     public class ClientData : ControllerBase 
-    {	
+    {
+		private class OAuthAuthorizationCode
+		{
+			public long userId { get; set; }
+			public string? redirectUri { get; set; }
+			public string? nonce { get; set; }
+			public string? state { get; set; }
+			public DateTimeOffset expiresAt { get; set; }
+		}
+
+		private class StudioLoginRequest
+		{
+			public string? username { get; set; }
+			public string? cvalue { get; set; }
+			public string password { get; set; } = "";
+		}
+
+		private static readonly ConcurrentDictionary<string, OAuthAuthorizationCode> OAuthCodes = new();
+		private static readonly TimeSpan OAuthCodeLifetime = TimeSpan.FromMinutes(5);
+
+		private async Task<string> GetRequestBody()
+		{
+			HttpContext.Request.EnableBuffering();
+			using var reader = new StreamReader(
+				HttpContext.Request.Body,
+				Encoding.UTF8,
+				detectEncodingFromByteOrderMarks: false,
+				bufferSize: 1024,
+				leaveOpen: true
+			);
+
+			var body = await reader.ReadToEndAsync();
+			HttpContext.Request.Body.Seek(0, SeekOrigin.Begin);
+			return body;
+		}
+
+		private async Task RateLimitCheck()
+		{
+			var loginKey = "LoginAttemptCountV1:" + GetIP();
+			var attemptCount = (await services.cooldown.GetBucketDataForKey(loginKey, TimeSpan.FromMinutes(10))).ToArray();
+			if (!await services.cooldown.TryIncrementBucketCooldown(loginKey, 15, TimeSpan.FromMinutes(10), attemptCount, true))
+				throw new ForbiddenException(15, "Too many attempts, please wait about 10 minutes before retrying!");
+		}
+
+		private async Task<UserInfo> ValidateStudioLogin(string username, string password)
+		{
+			try
+			{
+				FeatureFlags.FeatureCheck(FeatureFlag.LoginEnabled);
+			}
+			catch (RobloxException)
+			{
+				throw new RobloxException(503, 0, "Login is currently disabled. Please try again later.");
+			}
+
+			await RateLimitCheck();
+
+			UserInfo userInfo;
+			try
+			{
+				userInfo = await services.users.GetUserByName(username);
+			}
+			catch (RecordNotFoundException)
+			{
+				throw new ForbiddenException(1, "Incorrect username or password. Please try again.");
+			}
+
+			try
+			{
+				if (!await services.users.VerifyPassword(userInfo.userId, password))
+					throw new ForbiddenException(1, "Incorrect username or password. Please try again.");
+			}
+			catch (RecordNotFoundException)
+			{
+				throw new ForbiddenException(4, "Your account has been locked. Please reset your password to unlock your account.");
+			}
+
+			return userInfo;
+		}
+
+		private async Task<string> CreateSessionAndSetCookie(long userId)
+		{
+			var sessionCookie = SessionMiddleware.CreateJwt(new JwtEntry
+			{
+				sessionId = await services.users.CreateSession(userId),
+				createdAt = DateTimeOffset.Now.ToUnixTimeSeconds(),
+			});
+
+			HttpContext.Response.Cookies.Append(SessionMiddleware.CookieName, sessionCookie, new CookieOptions
+			{
+				HttpOnly = true,
+				Secure = true,
+				Expires = DateTimeOffset.Now.AddDays(364),
+				IsEssential = true,
+				Path = "/",
+				SameSite = SameSiteMode.Lax,
+			});
+
+			return sessionCookie;
+		}
+
+		private static string RandomToken(int byteLength = 32)
+		{
+			return Convert.ToBase64String(RandomNumberGenerator.GetBytes(byteLength))
+				.TrimEnd('=')
+				.Replace('+', '-')
+				.Replace('/', '_');
+		}
+
+		private static string BuildUnsignedJwt(object payload)
+		{
+			var header = Convert.ToBase64String(Encoding.UTF8.GetBytes("{\"alg\":\"none\",\"typ\":\"JWT\"}"))
+				.TrimEnd('=').Replace('+', '-').Replace('/', '_');
+			var body = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload)))
+				.TrimEnd('=').Replace('+', '-').Replace('/', '_');
+			return $"{header}.{body}.";
+		}
+
+		private static void PruneExpiredOAuthCodes()
+		{
+			var now = DateTimeOffset.UtcNow;
+			foreach (var kvp in OAuthCodes)
+			{
+				if (kvp.Value.expiresAt <= now)
+					OAuthCodes.TryRemove(kvp.Key, out _);
+			}
+		}
 		[HttpGet("login/negotiate.ashx"), HttpGet("login/negotiateasync.ashx")]
 		public object Negotiate(string suggest)
 		{
@@ -169,45 +301,58 @@ public async Task<IActionResult> GetStudioBehaviorConfig()
 }
 [HttpGetBypass("studio-login/v1/login")]
 [HttpPostBypass("studio-login/v1/login")]
-public IActionResult StudioLogin()
+public async Task<IActionResult> StudioLogin()
 {
-    var ROBLOSECURITY = "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_DGJJD464646464dfgdgdgdCUdgjneth4iht4ih64uh4uihy4y4yuhi4yhuiyhui4yhui4uihy4huiyhu4iyhuihu4hhdghdgihdigdhuigdhuigidhugihugdgidojgijodijogdijogdjoigdjoidijogijodgijdgiojdgijodgijoF";
+	UserInfo userInfo;
+	if (userSession != null)
+	{
+		userInfo = await services.users.GetUserById(userSession.userId);
+	}
+	else
+	{
+		var requestBody = await GetRequestBody();
+		if (string.IsNullOrWhiteSpace(requestBody))
+			throw new BadRequestException(3, "Username and Password are required. Please try again.");
 
-    var RBXID = "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_eyJhbGciOiJIUzI1NiJ9.fakepayload";
+		StudioLoginRequest? loginRequest;
+		try
+		{
+			loginRequest = JsonConvert.DeserializeObject<StudioLoginRequest>(requestBody);
+		}
+		catch (Exception)
+		{
+			throw new BadRequestException(3, "Username and Password are required. Please try again.");
+		}
 
-    var cookieOptions = new CookieOptions
-    {
-        HttpOnly = true,
-        Secure = true,
-        Expires = DateTimeOffset.Now.AddDays(14),
-        Path = "/",
-        SameSite = SameSiteMode.Lax
-        // Domain = ".kornet.lat" 
-    };
+		var username = loginRequest?.username ?? loginRequest?.cvalue;
+		var password = loginRequest?.password ?? "";
+		if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+			throw new BadRequestException(3, "Username and Password are required. Please try again.");
 
-    HttpContext.Response.Cookies.Append(".ROBLOSECURITY", ROBLOSECURITY, cookieOptions);
-    HttpContext.Response.Cookies.Append(".RBXID", RBXID, cookieOptions);
+		userInfo = await ValidateStudioLogin(username, password);
+		await CreateSessionAndSetCookie(userInfo.userId);
+	}
 
-    var response = new
-    {
-        user = new
-        {
-            UserId = 1,
-            Username = "Roblox",
-            AgeBracket = 0,
-            Roles = new string[] { },
-            Email = new
-            {
-                value = "r*********@kornet.lat",
-                isVerified = true
-            },
-            IsBanned = false,
-            DisplayName = "Roblox"
-        },
-        userAgreements = new object[] { }
-    };
+	var response = new
+	{
+		user = new
+		{
+			UserId = userInfo.userId,
+			Username = userInfo.username,
+			AgeBracket = 0,
+			Roles = Array.Empty<string>(),
+			Email = new
+			{
+				value = "",
+				isVerified = false
+			},
+			IsBanned = false,
+			DisplayName = userInfo.username
+		},
+		userAgreements = Array.Empty<object>()
+	};
 
-    return new JsonResult(response);
+	return new JsonResult(response);
 }
 		[HttpGetBypass("Setting/24")]
 		public async Task<MVC.ActionResult> GetAppSettings2014()
@@ -271,16 +416,36 @@ public async Task<IActionResult> RCCNewApplication(
     return Content(content, "text/plain");
 }
 [HttpGetBypass("oauth/v1/authorize")]
-public IActionResult OAuthAuthorize([FromQuery] string? state = "")
+public IActionResult OAuthAuthorize([FromQuery] string? state = "", [FromQuery(Name = "redirect_uri")] string? redirectUri = "", [FromQuery] string? nonce = "")
 {
-    var loginUrl = $"roblox-studio-auth-kornet:/?code=a&state={state}";
-    
+    if (userSession == null)
+    {
+		var qs = HttpContext.Request.QueryString.HasValue ? HttpContext.Request.QueryString.Value : "";
+		var returnUrl = Uri.EscapeDataString($"/oauth/v1/authorize{qs}");
+		return Redirect($"/UnsecuredContent/index.html?returnUrl={returnUrl}");
+    }
+
+	PruneExpiredOAuthCodes();
+	var code = RandomToken(24);
+	OAuthCodes[code] = new OAuthAuthorizationCode
+	{
+		userId = userSession.userId,
+		redirectUri = redirectUri,
+		nonce = nonce,
+		state = state,
+		expiresAt = DateTimeOffset.UtcNow.Add(OAuthCodeLifetime),
+	};
+
+	var appRedirect = !string.IsNullOrWhiteSpace(redirectUri)
+		? $"{redirectUri}{(redirectUri.Contains('?') ? "&" : "?")}code={Uri.EscapeDataString(code)}&state={Uri.EscapeDataString(state ?? "")}"
+		: $"roblox-studio-auth-kornet:/?code={Uri.EscapeDataString(code)}&state={Uri.EscapeDataString(state ?? "")}";
+
     var html = $@"<!DOCTYPE html>
 <html lang=""en"">
 <head>
     <meta charset=""UTF-8"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Studio Offline Login</title>
+    <title>Studio OAuth Login</title>
     <style>
         body {{
             font-family: Arial, sans-serif;
@@ -322,12 +487,12 @@ public IActionResult OAuthAuthorize([FromQuery] string? state = "")
 </head>
 <body>
     <div class=""container"">
-        <h1>Studio Offline Login</h1>
-        <p>You are on the Studio Offline login page. To login, click the button below.</p>
-        <a class=""btn"" href=""{loginUrl}"">Login</a>
+        <h1>Studio OAuth Login</h1>
+        <p>Authenticated as user ID {userSession.userId}. Click below to continue Studio OAuth.</p>
+        <a class=""btn"" href=""{appRedirect}"">Continue</a>
     </div>
     <footer>
-        <p>Made by Stan. Thanks to Chris for the hook help.</p>
+        <p>OAuth code expires in {OAuthCodeLifetime.TotalMinutes:0} minutes.</p>
     </footer>
 </body>
 </html>";
@@ -342,17 +507,75 @@ public IActionResult TimeSpentPbe2023Lol()
 }
 [HttpGetBypass("oauth/v1/token")]
 [HttpPostBypass("oauth/v1/token")]
-public IActionResult OAuthToken()
+public async Task<IActionResult> OAuthToken([FromQuery] string? code = null, [FromQuery] string? grant_type = null, [FromQuery(Name = "redirect_uri")] string? redirectUri = null)
 {
-    return new JsonResult(new
-    {
-        access_token = "eyJhbGciOiJFUzI1NiIsImtpZCI6IlBOeHhpb2JFNE8zbGhQUUlUZG9QQ3FCTE81amh3aXZFS1pHOWhfTGJNOWMiLCJ0eXAiOiJKV11234.eyJzdWIiOiIyMDY3MjQzOTU5IiwiYWlkIjoiM2Q2MWU3NDctM2ExNS00NTE4LWJiNDEtMWU3M2VhNDUyZWIwIiwic2NvcGUiOiJvcGVuaWQ6cmVhZCBwcm9maWxlOnJlYWQiLCJqdGkiOiJBVC5QbmFWVHpJU3k2YkI5TG5QYnZpTCIsIm5iZiI6MTY5MTYzOTY5OCwiZXhwIjoxNjkxNjQwNTk4LCJpYXQiOjE2OTE2Mzk2OTgsImlzcyI6Imh0dHBzOi8vYXBpcy5yb2Jsb3guY29tL29hdXRoLyIsImF1ZCI6IjcyOTA2MTAzOTc5ODc5MzQ5Nj1234.BjwMkC8Q5a_iP1Q5Th8FrS7ntioAollv_zW9mprF1ats9CD2axCvupZydVzYphzQ8TawunnYXp0Xe8k0t8ithg",
-        refresh_token = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidGpHd1BHaURDWkprZEZkREg1dFZ5emVzRWQyQ0o1NDgtUi1Ya1J1TTBBRSIsInR5cCI6IkpXVCJ9..nKYZvjvXH6msDG8Udluuuw.PwP-_HJIjrgYdY-gMR0Q3cabNwIbmItcMEQHx5r7qStVVa5l4CbrKwJvjY-w9xZ9VFb6P70WmXndNifnio5BPZmivW5QkJgv5_sxLoCwsqB1bmEkz2nFF4ANLzQLCQMvQwgXHPMfCK-lclpVEwnHk4kemrCFOvfuH4qJ1V0Q0j0WjsSU026M67zMaFrrhSKwQh-SzhmXejhKJOjhNfY9hAmeS-LsLLdszAq_JyN7fIvZl1fWDnER_CeDAbQDj5K5ECNOHAQ3RemQ2dADVlc07VEt2KpSqUlHlq3rcaIcNRHCue4GfbCc1lZwQsALbM1aSIzF68klXs1Cj_ZmXxOSOyHxwmbQCHwY7aa16f3VEJzCYa6m0m5U_oHy84iQzsC-_JvBaeFCachrLWmFY818S-nH5fCIORdYgc4s7Fj5HdULnnVwiKeQLKSaYsfneHtqwOc_ux2QYv6Cv6Xn04tkB2TEsuZ7dFwPI-Hw2O30vCzLTcZ-Fl08ER0J0hhq4ep7B641IOnPpMZ1m0gpJJRPbHX_ooqHol9zHZ0gcLKMdYy1wUgsmn_nK_THK3m0RmENXNtepyLw_tSd5vqqIWZ5NFglKSqVnbomEkxneEJRgoFhBGMZiR-3FXMaVryUjq-N.Q_t4NGxTUSMsLVEppkTu0Q6rwt2rKJfFGuvy3s12345",
-        token_type = "Bearer",
-        expires_in = 899,
-        id_token = "eyJhbGciOiJFUzI1NiIsImtpZCI6IkNWWDU1Mi1zeWh4Y1VGdW5vNktScmtReFB1eW15YTRQVllodWdsd3hnNzgiLCJ0eXAiOiJKV11234.eyJzdWIiOiIxIiwibmFtZSI6IlJPQkxPWCIsIm5pY2tuYW1lIjoiUk9CTE9YIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiUk9CTE9YIiwiY3JlYXRlZF9hdCI6MSwicHJvZmlsZSI6Imh0dHBzOi8vd3d3LnJvYmxveC5jb20vdXNlcnMvMS9wcm9maWxlIiwibm9uY2UiOiIxMjM0NSIsImp0aSI6IklELnltd3ZjTUdpOVg4azkyNm9qd1I5IiwibmJmIjoxNjkxNjM5Njk4LCJleHAiOjE2OTE2NzU2OTgsImlhdCI6MTY5MTYzOTY5OCwiaXNzIjoiaHR0cHM6Ly9hcGlzLnJvYmxveC5jb20vb2F1dGgvIiwiYXVkIjoiNzI5MDYxMDM5Nzk4NzkzNDk2NCJ9.kZgCMJQGsariwCi8HqsUadUBMM8ZOmf_IPDoWyQY9gVX4Kx3PubDz-Q6MvZ9eU5spNFz0-PEH-G2WSvq2ljDyg",
-        scope = "openid profile"
-    });
+    string? postedCode = null;
+	string? postedGrantType = null;
+	string? postedRedirect = null;
+
+	if (Request.HasFormContentType)
+	{
+		var form = await Request.ReadFormAsync();
+		postedCode = form["code"].ToString();
+		postedGrantType = form["grant_type"].ToString();
+		postedRedirect = form["redirect_uri"].ToString();
+	}
+
+	var resolvedCode = string.IsNullOrWhiteSpace(code) ? postedCode : code;
+	var resolvedGrantType = string.IsNullOrWhiteSpace(grant_type) ? postedGrantType : grant_type;
+	var resolvedRedirectUri = string.IsNullOrWhiteSpace(redirectUri) ? postedRedirect : redirectUri;
+
+	if (!string.Equals(resolvedGrantType, "authorization_code", StringComparison.OrdinalIgnoreCase))
+		return BadRequest(new { error = "unsupported_grant_type" });
+
+	if (string.IsNullOrWhiteSpace(resolvedCode) || !OAuthCodes.TryRemove(resolvedCode, out var authCode))
+		return BadRequest(new { error = "invalid_grant" });
+
+	if (authCode.expiresAt <= DateTimeOffset.UtcNow)
+		return BadRequest(new { error = "invalid_grant", error_description = "authorization code expired" });
+
+	if (!string.IsNullOrWhiteSpace(authCode.redirectUri) &&
+		!string.IsNullOrWhiteSpace(resolvedRedirectUri) &&
+		!string.Equals(authCode.redirectUri, resolvedRedirectUri, StringComparison.Ordinal))
+	{
+		return BadRequest(new { error = "invalid_grant", error_description = "redirect_uri mismatch" });
+	}
+
+	var userInfo = await services.users.GetUserById(authCode.userId);
+	var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+	var expiresAt = DateTimeOffset.UtcNow.AddMinutes(15).ToUnixTimeSeconds();
+
+	var accessToken = BuildUnsignedJwt(new
+	{
+		sub = userInfo.userId.ToString(),
+		preferred_username = userInfo.username,
+		scope = "openid profile",
+		iat = now,
+		exp = expiresAt,
+		jti = RandomToken(18),
+	});
+
+	var idToken = BuildUnsignedJwt(new
+	{
+		sub = userInfo.userId.ToString(),
+		name = userInfo.username,
+		nickname = userInfo.username,
+		preferred_username = userInfo.username,
+		profile = $"{Request.Scheme}://{Request.Host}/users/{userInfo.userId}/profile",
+		nonce = authCode.nonce ?? "",
+		iat = now,
+		exp = expiresAt,
+	});
+
+	return new JsonResult(new
+	{
+		access_token = accessToken,
+		refresh_token = RandomToken(48),
+		token_type = "Bearer",
+		expires_in = 900,
+		id_token = idToken,
+		scope = "openid profile"
+	});
 }
 [HttpGetBypass("oauth/.well-known/openid-configuration")]
 public async Task<IActionResult> OpenIdConfiguration()
