@@ -11,7 +11,7 @@ const useStyles = createUseStyles({
   linkEntry: {
     marginBottom: '0',
     paddingTop: '5px',
-    color: props => (props.theme === themeType.obc2016 || props.theme === themeType.dark) ? '#ffffff' : '#4a4a4a',
+    color: props => (props.theme === themeType.obc2016 || props.theme === themeType.dark) ? '#ffffff' : '#393b3d',
   },
   name: {
     fontSize: '16px',
