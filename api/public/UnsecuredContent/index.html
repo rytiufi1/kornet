@@ -88,6 +88,14 @@ function getCookie(name) {
     return null;
 }
 
+function navigateTarget(url) {
+    if (window !== window.top) {
+        window.parent.postMessage({ type: 'navigate', url: url }, '*');
+        return;
+    }
+    window.location.href = url;
+}
+
 function submitLogin(e) {
     e.preventDefault();
     var form = document.getElementById('login-form');
@@ -105,16 +113,16 @@ function submitLogin(e) {
         if (document.cookie.includes('.ROBLOSECURITY')) {
             var returnUrl = getparam('returnUrl');
             var target = (returnUrl && returnUrl.trim() !== '') ? returnUrl : '/home';
-            window.parent.postMessage({ type: 'navigate', url: target }, '*');
+            navigateTarget(target);
             return;
         }
         var responseUrl = xhr.responseURL || '';
         if (responseUrl.includes('/home')) {
             var returnUrl2 = getparam('returnUrl');
             var target2 = (returnUrl2 && returnUrl2.trim() !== '') ? returnUrl2 : '/home';
-            window.parent.postMessage({ type: 'navigate', url: target2 }, '*');
+            navigateTarget(target2);
         } else if (responseUrl.includes('/login/2fa') || responseUrl.includes('/login/two-step-verification') || responseUrl.includes('two-step')) {
-            window.parent.postMessage({ type: 'navigate', url: '/login/2fa' }, '*');
+            navigateTarget('/login/2fa');
         } else if (responseUrl.includes('loginmsg')) {
             var url = new URL(responseUrl);
             var errorMsg = url.searchParams.get('loginmsg');
@@ -153,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (discordBtn) {
         discordBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            window.parent.postMessage({ type: 'navigate', url: '/login-with-discord' }, '*');
+            navigateTarget('/login-with-discord');
         });
     }
     
@@ -161,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (forgotLink) {
         forgotLink.addEventListener('click', function(e) {
             e.preventDefault();
-            window.parent.postMessage({ type: 'navigate', url: '/forgotpasswordOrUsername' }, '*');
+            navigateTarget('/forgotpasswordOrUsername');
         });
     }
     
@@ -169,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (signupLink) {
         signupLink.addEventListener('click', function(e) {
             e.preventDefault();
-            window.parent.postMessage({ type: 'navigate', url: '/' }, '*');
+            navigateTarget('/');
         });
     }
 });

@@ -67,7 +67,23 @@ namespace Roblox.Website.Controllers
 				throw new ForbiddenException(15, "Too many attempts, please wait about 10 minutes before retrying!");
 		}
 
-		private async Task<UserInfo> ValidateStudioLogin(string username, string password)
+		private static (string username, string? twoFactorCode) ParseUsernameAndTwoFactor(string rawUsername)
+		{
+			if (string.IsNullOrWhiteSpace(rawUsername))
+				return ("", null);
+
+			var semicolonSplit = rawUsername.Split(';');
+			if (semicolonSplit.Length == 2)
+				return (semicolonSplit[0], semicolonSplit[1]);
+
+			var pipeSplit = rawUsername.Split('|');
+			if (pipeSplit.Length == 2)
+				return (pipeSplit[0], pipeSplit[1]);
+
+			return (rawUsername, null);
+		}
+
+		private async Task<UserInfo> ValidateStudioLogin(string username, string password, string? twoFactorCode)
 		{
 			try
 			{
@@ -98,6 +114,15 @@ namespace Roblox.Website.Controllers
 			catch (RecordNotFoundException)
 			{
 				throw new ForbiddenException(4, "Your account has been locked. Please reset your password to unlock your account.");
+			}
+
+			if (await services.twoFactor.IsEnabled(userInfo.userId))
+			{
+				if (string.IsNullOrWhiteSpace(twoFactorCode))
+					throw new ForbiddenException(2, "2FA is enabled. Please login with username;2FACode.");
+
+				if (!await services.twoFactor.VerifyCode(userInfo.userId, twoFactorCode))
+					throw new ForbiddenException(1, "Incorrect 2FA code. Please try again.");
 			}
 
 			return userInfo;
@@ -324,12 +349,16 @@ public async Task<IActionResult> StudioLogin()
 			throw new BadRequestException(3, "Username and Password are required. Please try again.");
 		}
 
-		var username = loginRequest?.username ?? loginRequest?.cvalue;
+		var usernameRaw = loginRequest?.username ?? loginRequest?.cvalue;
 		var password = loginRequest?.password ?? "";
-		if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+		if (string.IsNullOrWhiteSpace(usernameRaw) || string.IsNullOrWhiteSpace(password))
 			throw new BadRequestException(3, "Username and Password are required. Please try again.");
 
-		userInfo = await ValidateStudioLogin(username, password);
+		var parsed = ParseUsernameAndTwoFactor(usernameRaw);
+		if (string.IsNullOrWhiteSpace(parsed.username))
+			throw new BadRequestException(3, "Username and Password are required. Please try again.");
+
+		userInfo = await ValidateStudioLogin(parsed.username, password, parsed.twoFactorCode);
 		await CreateSessionAndSetCookie(userInfo.userId);
 	}
 
@@ -445,6 +474,7 @@ public IActionResult OAuthAuthorize([FromQuery] string? state = "", [FromQuery(N
 <head>
     <meta charset=""UTF-8"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <meta http-equiv=""refresh"" content=""0;url={appRedirect}"">
     <title>Studio OAuth Login</title>
     <style>
         body {{
@@ -488,7 +518,7 @@ public IActionResult OAuthAuthorize([FromQuery] string? state = "", [FromQuery(N
 <body>
     <div class=""container"">
         <h1>Studio OAuth Login</h1>
-        <p>Authenticated as user ID {userSession.userId}. Click below to continue Studio OAuth.</p>
+        <p>Authenticated as user ID {userSession.userId}. Redirecting to Studio OAuth...</p>
         <a class=""btn"" href=""{appRedirect}"">Continue</a>
     </div>
     <footer>
