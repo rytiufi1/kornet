@@ -183,6 +183,12 @@ public class ThumbnailsService : ServiceBase, IService
 				{
 					final = "/img/Audio.png";
 				}
+				else if (c.type == Type.Video)
+				{
+					final = !string.IsNullOrEmpty(c.thumbnailUrl)
+						? "/images/thumbnails/" + c.thumbnailUrl + ".png"
+						: "/img/Video.png";
+				}
 				else if (c.type is Type.Model or Type.Lua)
 				{
 					final = !string.IsNullOrEmpty(c.thumbnailUrl)

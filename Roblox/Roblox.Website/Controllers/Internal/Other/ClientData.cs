@@ -409,9 +409,18 @@ public IActionResult GetUniversalBehaviorContents()
 public async Task<IActionResult> StudioLogin()
 {
 	UserInfo userInfo;
+	var isGetRequest = string.Equals(Request.Method, "GET", StringComparison.OrdinalIgnoreCase);
+
 	if (userSession != null)
 	{
 		userInfo = await services.users.GetUserById(userSession.userId);
+	}
+	else if (isGetRequest)
+	{
+		return Unauthorized(new
+		{
+			authenticated = false
+		});
 	}
 	else
 	{
