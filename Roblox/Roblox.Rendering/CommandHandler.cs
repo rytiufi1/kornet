@@ -1,13 +1,9 @@
-using System.Buffers;
 using System.Diagnostics;
-using System.Net.WebSockets;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Web;
 using Roblox.Logging;
 using System.Net;
 using System.Xml;
@@ -17,11 +13,6 @@ namespace Roblox.Rendering
 {
     public static class CommandHandler
     {
-        private static System.Threading.Mutex mux { get; set; } = new();
-        private static ClientWebSocket? ws { get; set; }
-        private static Dictionary<string, Func<RenderResponse<Stream>,int>> resultListeners { get; } = new();
-        private static Uri wsUrl { get; set; }
-		private static Dictionary<int, Process> rccProcesses { get; } = new();
         private static Random random { get; } = new();
         private static object rccLock { get; } = new();
 		private static SemaphoreSlim Rcc2020Lock { get; } = new(1, 1);
@@ -30,13 +21,8 @@ namespace Roblox.Rendering
 
         public static void Configure(string baseUrl, string authorization)
         {
-            var url = new Uri(baseUrl + "?key=" + HttpUtility.UrlEncode(authorization));
-            wsUrl = url;
-
-            Task.Run(async () =>
-            {
-                await ConnectionManager();
-            });
+			_ = baseUrl;
+			_ = authorization;
         }
 		
 		private static bool IsPortInUse(int port)
@@ -78,165 +64,6 @@ namespace Roblox.Rendering
 			}
 		}
 
-        private static async Task ListenForMessages()
-        {
-            // allocate 8mb
-            using var memory = MemoryPool<byte>.Shared.Rent(1024 * 1024 * 8);
-
-            while (true)
-            {
-                try
-                {
-                    var result = await ws.ReceiveAsync(memory.Memory, CancellationToken.None);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        Console.WriteLine("[info] Render websocket closed. Re-opening...");
-                        continue;
-                    }
-
-                    var msg = Encoding.UTF8.GetString(memory.Memory.Span.Slice(0, result.Count));
-
-                    Console.WriteLine("Received WS message, result={0}", msg.Substring(0,100)+"...");
-                    var decoded = JsonSerializer.Deserialize<RenderResponse<string>>(msg);
-                    if (decoded == null)
-                    {
-                        Console.WriteLine("Got invalid WS message - it was null");
-                        continue;
-                    }
-                    var newResponse = new RenderResponse<Stream>()
-                    {
-                        id = decoded.id,
-                        status = decoded.status,
-                        data = null,
-                    };
-
-                    // data is null when statusCode != 200
-                    if (decoded.data != null)
-                    {
-                        var bytes = Convert.FromBase64String(decoded.data);
-                        newResponse.data = new MemoryStream(bytes);
-                    }
-
-                    mux.WaitOne();
-                    try
-                    {
-                        var hasListener = resultListeners.ContainsKey(decoded.id);
-                        if (hasListener)
-                        {
-                            resultListeners[decoded.id](newResponse);
-                            resultListeners.Remove(decoded.id);
-                        }
-                        else
-                        {
-                            Console.WriteLine("[warning] got message for item without listener. id = {0}", decoded.id);
-                        }
-                    }
-                    finally
-                    {
-                        mux.ReleaseMutex();
-                    }
-                }
-                catch (System.Exception e)
-                {
-                    Console.WriteLine("Got error in ws connection {0}", e.Message);
-                    throw;
-                }
-            }
-        }
-        
-        private static async Task ConnectionManager()
-        {
-            while (true)
-            {
-                try
-                {
-                    mux.WaitOne();
-                    ws ??= new ClientWebSocket();
-                    var wsCurrentState = ws.State;
-                    mux.ReleaseMutex();
-                    
-                    if (wsCurrentState is WebSocketState.Aborted or WebSocketState.Closed or WebSocketState.None or WebSocketState.CloseReceived or WebSocketState.CloseSent)
-                    {
-                        Console.WriteLine("[info] ws connection is in state {0}, so we are re-connecting (did you start the renderer?) state:", ws.State);
-                        mux.WaitOne();
-                        ws = new ClientWebSocket();
-                        mux.ReleaseMutex();
-                        await ws.ConnectAsync(wsUrl, CancellationToken.None);
-                    }
-                    await ListenForMessages();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("[info] ConnectionManager error in WebSocket connection {0} error:", e.Message);
-                    await Task.Delay(TimeSpan.FromSeconds(5));
-                }
-            }
-        }
-
-        private static async Task<RenderResponse<Stream>> SendCommand(string command, IEnumerable<dynamic> arguments, CancellationToken? cancellationToken)
-        {
-            var id = Guid.NewGuid().ToString();
-            var cmd = new RenderRequest()
-            {
-                command = command,
-                args = arguments,
-                id = id,
-            };
-            var res = new TaskCompletionSource<RenderResponse<Stream>>();
-            var responseMutex = new Mutex();
-            
-            mux.WaitOne();
-            resultListeners[id] = stream =>
-            {
-                lock (responseMutex)
-                {
-                    res.SetResult(stream);
-                }
-
-                return 0; 
-            };
-            mux.ReleaseMutex();
-            var bits = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(cmd));
-            while (ws is not {State: WebSocketState.Open})
-            {
-#if DEBUG 
-                await Task.Delay(TimeSpan.FromSeconds(60), cancellationToken  ?? CancellationToken.None);
-#else
-                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken  ?? CancellationToken.None);
-#endif
-                if (cancellationToken is {IsCancellationRequested: true})
-                    throw new TaskCanceledException();
-            }
-            await ws.SendAsync(bits, WebSocketMessageType.Text, true, cancellationToken ?? CancellationToken.None);
-
-            await using var register = cancellationToken?.Register(() =>
-            {
-                mux.WaitOne();
-                resultListeners.Remove(id);
-                mux.ReleaseMutex();
-                lock (responseMutex)
-                {
-                    if (res.TrySetCanceled(cancellationToken.Value) && command != "Cancel")
-                    {
-                        SendCommand("Cancel", new List<dynamic>()
-                        {
-                            id,
-                        }, CancellationToken.None);
-                    }
-                }
-            });
-            var resp = await res.Task;
-            return resp;
-        }   
-        
-        private static async Task<Stream> SendCmdWithErrHandlingAsync(string cmd, IEnumerable<dynamic> arguments, CancellationToken? cancellationToken = null)
-        {
-            var result = await SendCommand(cmd, arguments, cancellationToken);
-            if (result.status != 200) throw new Exception("Render failed with status = " + result.status);
-            if (result.data == null) throw new Exception("Null stream returned from SendCommand");
-            return result.data;
-        }
-		
 		private static async Task SendCloseJobRequest(int port, string jobId)
 		{
 			var XML = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
@@ -666,6 +493,24 @@ namespace Roblox.Rendering
 			}
 		}
 
+		private static async Task<Stream> RenderRcc2020AssetWithFallback(long assetId, IEnumerable<string> renderTypes, string format = "Png", CancellationToken? cancellationToken = null)
+		{
+			Exception? lastException = null;
+			foreach (var renderType in renderTypes)
+			{
+				try
+				{
+					return await RenderRcc2020Asset(assetId, renderType, format, cancellationToken);
+				}
+				catch (Exception ex)
+				{
+					lastException = ex;
+				}
+			}
+
+			throw new Exception($"RCC 2020 failed to render asset {assetId} for all render types.", lastException);
+		}
+
 		public static async Task<Stream> RequestPlayerThumbnailR15(long userId, CancellationToken? cancellationToken = null)
 		{
 			await Rcc2020Lock.WaitAsync(cancellationToken ?? CancellationToken.None);
@@ -742,19 +587,47 @@ namespace Roblox.Rendering
 
         public static async Task<Stream> RequestTextureThumbnail(long assetId, int assetTypeId, CancellationToken? cancellationToken = null)
         {
-            return await SendCmdWithErrHandlingAsync("GenerateThumbnailTexture", new List<dynamic>
-            {
-                assetId, 
-                assetTypeId
-            }, cancellationToken);
+			await Rcc2020Lock.WaitAsync(cancellationToken ?? CancellationToken.None);
+
+			try
+			{
+				_ = assetTypeId;
+				return await RenderRcc2020AssetWithFallback(assetId, new[]
+				{
+					"Decal",
+					"Image"
+				}, "Png", cancellationToken);
+			}
+			finally
+			{
+				Rcc2020Lock.Release();
+			}
         }
         
         public static async Task<Stream> RequestAssetThumbnail(long assetId, CancellationToken? cancellationToken = null)
         {
-            return await SendCmdWithErrHandlingAsync("GenerateThumbnailAsset", new List<dynamic>
-            {
-                assetId, 
-            }, cancellationToken);
+			await Rcc2020Lock.WaitAsync(cancellationToken ?? CancellationToken.None);
+
+			try
+			{
+				return await RenderRcc2020AssetWithFallback(assetId, new[]
+				{
+					"Hat",
+					"Shirt",
+					"Pants",
+					"Gear",
+					"Model",
+					"Image",
+					"Decal",
+					"MeshPart",
+					"Mesh",
+					"Head",
+				}, "Png", cancellationToken);
+			}
+			finally
+			{
+				Rcc2020Lock.Release();
+			}
         }
 
         public static async Task<Stream> RequestAssetThumbnail3D(long assetId, CancellationToken? cancellationToken = null)
@@ -773,35 +646,49 @@ namespace Roblox.Rendering
 
         public static async Task<Stream> RequestHeadThumbnail(long assetId, CancellationToken? cancellationToken = null)
         {
-            return await SendCmdWithErrHandlingAsync("GenerateThumbnailHead", new List<dynamic>
-            {
-                assetId, 
-            }, cancellationToken);
+			await Rcc2020Lock.WaitAsync(cancellationToken ?? CancellationToken.None);
+
+			try
+			{
+				return await RenderRcc2020Asset(assetId, "Head", "Png", cancellationToken);
+			}
+			finally
+			{
+				Rcc2020Lock.Release();
+			}
         }
 		
         public static async Task<Stream> RequestAssetMesh(long assetId, CancellationToken? cancellationToken = null)
         {
-            return await SendCmdWithErrHandlingAsync("GenerateThumbnailMesh", new List<dynamic>
-            {
-                assetId, 
-            }, cancellationToken);
+			await Rcc2020Lock.WaitAsync(cancellationToken ?? CancellationToken.None);
+
+			try
+			{
+				return await RenderRcc2020AssetWithFallback(assetId, new[]
+				{
+					"Mesh",
+					"MeshPart"
+				}, "Png", cancellationToken);
+			}
+			finally
+			{
+				Rcc2020Lock.Release();
+			}
         }
 
         public static async Task<Stream> RequestPlaceConversion(string base64EncodedPlace, CancellationToken? cancellationToken = null)
         {
-            return await SendCmdWithErrHandlingAsync("ConvertRobloxPlace", new List<dynamic>
-            {
-                base64EncodedPlace, 
-            }, cancellationToken);
+			_ = base64EncodedPlace;
+			_ = cancellationToken;
+			throw new NotSupportedException("Place conversion is removed. Websocket renderer is disabled.");
         }
 
         public static async Task<Stream> RequestHatConversion(string base64EncodedHat,
             CancellationToken? cancellationToken = null)
         {
-            return await SendCmdWithErrHandlingAsync("ConvertHat", new List<dynamic>()
-            {
-                base64EncodedHat,
-            });
+			_ = base64EncodedHat;
+			_ = cancellationToken;
+			throw new NotSupportedException("Hat conversion is removed. Websocket renderer is disabled.");
         }
         
         public static async Task<Stream> RequestAssetGame(long assetId, int x, int y, CancellationToken? cancellationToken = null)
@@ -820,11 +707,22 @@ namespace Roblox.Rendering
 
         public static async Task<Stream> RequestAssetTeeShirt(long assetId, long contentId, CancellationToken? cancellationToken = null)
         {
-            return await SendCmdWithErrHandlingAsync("GenerateThumbnailTeeShirt", new List<dynamic>
-            {
-                assetId,
-                contentId,
-            }, cancellationToken);
+			await Rcc2020Lock.WaitAsync(cancellationToken ?? CancellationToken.None);
+
+			try
+			{
+				_ = contentId;
+				return await RenderRcc2020AssetWithFallback(assetId, new[]
+				{
+					"Image",
+					"Shirt",
+					"Decal"
+				}, "Png", cancellationToken);
+			}
+			finally
+			{
+				Rcc2020Lock.Release();
+			}
         }
     }
 }
