@@ -1354,6 +1354,7 @@ public class AssetsService : ServiceBase, IService
 					access = 1,
 					is_vip_enabled = false,
 					is_public_domain = false,
+					allow_place_copy = false,
 				});
 			}
 
@@ -2072,7 +2073,7 @@ WHERE asset_type = :asset_type AND asset.id < :id AND NOT asset.is_18_plus ORDER
 
         var builder = new SqlBuilder();
 		var selectTemplate = builder.AddTemplate(
-		"SELECT a.id as assetId, a.asset_type as typeId, a.asset_genre as genre, a.creator_type as creatorType, a.creator_id as creatorId, a.name, a.description, a.created_at as created, a.updated_at as updated, a.comments_enabled as enableComments, a.moderation_status as moderationStatus, a.is_18_plus as is18Plus, apb.place_id as badgePlaceId, app.place_id as passPlaceId, place_asset.name as placeName FROM asset a LEFT JOIN asset_place_badge apb ON a.id = apb.badge_id LEFT JOIN asset_place_pass app ON a.id = app.pass_id LEFT JOIN asset place_asset ON (apb.place_id IS NOT NULL AND place_asset.id = apb.place_id) OR (app.place_id IS NOT NULL AND place_asset.id = app.place_id) /**where**/");
+		"SELECT a.id as assetId, a.asset_type as typeId, a.asset_genre as genre, a.creator_type as creatorType, a.creator_id as creatorId, a.name, a.description, a.created_at as created, a.updated_at as updated, a.comments_enabled as enableComments, a.moderation_status as moderationStatus, a.is_18_plus as is18Plus, apb.place_id as badgePlaceId, app.place_id as passPlaceId, place_asset.name as placeName, apl.allow_place_copy as placeAllowsCopy FROM asset a LEFT JOIN asset_place apl ON apl.asset_id = a.id LEFT JOIN asset_place_badge apb ON a.id = apb.badge_id LEFT JOIN asset_place_pass app ON a.id = app.pass_id LEFT JOIN asset place_asset ON (apb.place_id IS NOT NULL AND place_asset.id = apb.place_id) OR (app.place_id IS NOT NULL AND place_asset.id = app.place_id) /**where**/");
         for (var i = 0; i < assets.Count; i++)
         {
             var sqlParams = new DynamicParameters();
@@ -2085,7 +2086,8 @@ WHERE asset_type = :asset_type AND asset.id < :id AND NOT asset.is_18_plus ORDER
 		return result.Select(c => new MultiGetAssetDeveloperDetails(c)
 		{
 			placeId = (c.typeId == 21) ? c.badgePlaceId : (c.typeId == 34) ? c.passPlaceId : null,
-			placeName = (c.typeId == 21 || c.typeId == 34) ? c.placeName : null
+			placeName = (c.typeId == 21 || c.typeId == 34) ? c.placeName : null,
+			isCopyingAllowed = c.typeId == (int)Type.Place && (c.placeAllowsCopy ?? false),
 		});
     }
 
@@ -2100,8 +2102,15 @@ WHERE asset_type = :asset_type AND asset.id < :id AND NOT asset.is_18_plus ORDER
             description,
             asset_genre = (int) genre,
             comments_enabled = areCommentsAllowed,
-            // is_copying_allowed = isCopyingAllowed,
         });
+
+        var assetType = await db.QuerySingleOrDefaultAsync<int?>(
+            "SELECT asset_type FROM asset WHERE id = :id", new { id = assetId });
+        if (assetType == (int)Type.Place)
+        {
+            using var games = ServiceProvider.GetOrCreate<GamesService>(this);
+            await games.SetPlaceAllowsPublicCopy(assetId, isCopyingAllowed);
+        }
     }
 
     public async Task UpdateItemIsForSale(long assetId, bool isForSale)

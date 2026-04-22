@@ -358,6 +358,14 @@ namespace Roblox.Website.Controllers
                     }
                     break;
                 default:
+                    if (details.assetType == Type.Place
+                        && await services.games.GetPlaceAllowsPublicCopy(assetId)
+                        && latestVersion.contentUrl != null)
+                    {
+                        assetContent = await services.assets.GetAssetContent(latestVersion.contentUrl);
+                        break;
+                    }
+
                     // anything else requires auth
                     var ok = false;
                     if (isRcc)

@@ -11,6 +11,7 @@ import Vote from "./vote";
 import Favorite from "../../catalogDetailsPage/components/favorite";
 import Follow from "./follow";
 import Settings from "./settings";
+import { getBaseUrl } from "../../../lib/request";
 
 const useStyles = createUseStyles({
   titleRow: {
@@ -88,6 +89,11 @@ const GameOverview = props => {
         {store.universeDetails ? <Favorite assetId={store.details.id} favoriteCount={store.universeDetails.favoritedCount} /> : null}
         <Follow />
         <Vote placeId={store.details.id} />
+        {store.placeDetails?.isCopyingAllowed ? (
+          <a href={`${getBaseUrl()}Asset/?id=${store.details.id}`} download className='text-decoration-none'>
+            Download place
+          </a>
+        ) : null}
       </div>
     </div>
   </div>

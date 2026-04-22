@@ -98,6 +98,7 @@ const BasicSettings = props => {
   const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [genre, setGenre] = useState('All');
   const [isPlayable, setIsPlayable] = useState(true);
+  const [allowPlaceCopy, setAllowPlaceCopy] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const s = useButtonStyles();
 
@@ -107,6 +108,7 @@ const BasicSettings = props => {
     setDescription(store.details.description);
     setGenre(store.details.genre);
     setIsPlayable(store.details.isPlayable ?? true);
+    setAllowPlaceCopy(!!store.details.isCopyingAllowed);
   }
 
   useEffect(() => {
@@ -124,7 +126,7 @@ const BasicSettings = props => {
         name,
         description,
         genres: [genre],
-        isCopyingAllowed: false,
+        isCopyingAllowed: allowPlaceCopy,
         enableComments: commentsEnabled,
       });
 
@@ -180,6 +182,15 @@ const BasicSettings = props => {
         >
           <option value='true'>Yes</option>
           <option value='false'>No</option>
+        </select>
+
+        <p className='mb-0 fw-bold mt-2'>Uncopylocked (allow anyone to download this place file):</p>
+        <select
+          value={allowPlaceCopy}
+          onChange={e => setAllowPlaceCopy(e.currentTarget.value === 'true')}
+        >
+          <option value={true}>Yes</option>
+          <option value={false}>No</option>
         </select>
 		
 		 <p className='mb-0 fw-bold mt-2'>Can people access your place:</p>

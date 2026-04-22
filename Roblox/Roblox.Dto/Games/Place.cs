@@ -24,6 +24,7 @@ public class PlaceEntry
     public ModerationStatus moderationStatus { get; set; }
     public DateTime created { get; set; }
     public DateTime updated { get; set; }
+    public bool isCopyingAllowed { get; set; }
 }
 
 public class VoteRequest

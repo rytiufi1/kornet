@@ -262,6 +262,7 @@ namespace Roblox.Dto.Assets
 		public string placeName { get; set; }
 		public long? badgePlaceId { get; set; }
 		public long? passPlaceId { get; set; }
+		public bool? placeAllowsCopy { get; set; }
     }
 
     public class CreatorEntry
