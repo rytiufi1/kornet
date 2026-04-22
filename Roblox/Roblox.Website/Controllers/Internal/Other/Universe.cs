@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Dynamic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -147,31 +146,33 @@ namespace Roblox.Website.Controllers
         }
 
         [HttpGetBypass("v1/gametemplates")]
-        public async Task<dynamic> GameTemplates()
+        public dynamic GameTemplates()
         {
-            var templates = await services.games.MultiGetPlaceDetails(services.assets.getStarterPlaces.Values.ToList());
             return new
             {
-                data = templates.Select(c => new
+                data = new[]
                 {
-                    gameTemplateType = "Generic",
-                    hasTutorials = false,
-                    universe = new
+                    new
                     {
-                        id = c.universeId,
-                        name = c.name,
-                        description = c.description ?? "skbidii",
-                        isArchived = false,
-                        rootPlaceId = c.universeRootPlaceId,
-                        isActive = true,
-                        privacyType = "Public",
-                        creatorType = "User",
-                        creatorTargetId = c.builderId,
-                        creatorName = c.builder,
-                        created = c.created,
-                        updated = c.updated
+                        gameTemplateType = "Generic",
+                        hasTutorials = false,
+                        universe = new
+                        {
+                            id = 95206881,
+                            name = "Baseplate",
+                            description = (string?)null,
+                            isArchived = false,
+                            rootPlaceId = 95206881,
+                            isActive = true,
+                            privacyType = "Public",
+                            creatorType = "User",
+                            creatorTargetId = 1,
+                            creatorName = "ROBLOX",
+                            created = "2013-11-01T08:47:14.07Z",
+                            updated = "2023-05-02T22:03:01.107Z"
+                        }
                     }
-                })
+                }
             };
         }
 	}
