@@ -68,8 +68,12 @@ const Settings = ({ placeId }) => {
                             Configure this Place
                         </a>
                     )}
-                    {isCopyingAllowed && (
-                        <a href={`${getBaseUrl()}Asset/?id=${placeId}`} download className={s.menuItem}>
+                    {(isOwner || isCopyingAllowed) && (
+                        <a 
+                            href={`${getBaseUrl()}Asset/?id=${placeId}`} 
+                            download={`Place_${placeId}.rbxl`} 
+                            className={s.menuItem}
+                        >
                             Download place
                         </a>
                     )}
