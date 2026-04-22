@@ -40,7 +40,14 @@ namespace Roblox.Website.Controllers
 			public string password { get; set; } = "";
 		}
 
+		private class IssuedOAuthToken
+		{
+			public long userId { get; set; }
+			public DateTimeOffset expiresAt { get; set; }
+		}
+
 		private static readonly ConcurrentDictionary<string, OAuthAuthorizationCode> OAuthCodes = new();
+		private static readonly ConcurrentDictionary<string, IssuedOAuthToken> IssuedAccessTokens = new();
 		private static readonly TimeSpan OAuthCodeLifetime = TimeSpan.FromMinutes(5);
 
 		private async Task<string> GetRequestBody()
@@ -175,6 +182,31 @@ namespace Roblox.Website.Controllers
 				if (kvp.Value.expiresAt <= now)
 					OAuthCodes.TryRemove(kvp.Key, out _);
 			}
+		}
+
+		private static void PruneExpiredIssuedTokens()
+		{
+			var now = DateTimeOffset.UtcNow;
+			foreach (var kvp in IssuedAccessTokens)
+			{
+				if (kvp.Value.expiresAt <= now)
+					IssuedAccessTokens.TryRemove(kvp.Key, out _);
+			}
+		}
+
+		private bool TryGetBearerToken(out string token)
+		{
+			token = "";
+			var authHeader = Request.Headers["Authorization"].ToString();
+			if (string.IsNullOrWhiteSpace(authHeader))
+				return false;
+
+			const string prefix = "Bearer ";
+			if (!authHeader.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+				return false;
+
+			token = authHeader.Substring(prefix.Length).Trim();
+			return !string.IsNullOrWhiteSpace(token);
 		}
 		[HttpGet("login/negotiate.ashx"), HttpGet("login/negotiateasync.ashx")]
 		public object Negotiate(string suggest)
@@ -414,6 +446,19 @@ public async Task<IActionResult> StudioLogin()
 	if (userSession != null)
 	{
 		userInfo = await services.users.GetUserById(userSession.userId);
+	}
+	else if (isGetRequest && TryGetBearerToken(out var bearerToken))
+	{
+		PruneExpiredIssuedTokens();
+		if (!IssuedAccessTokens.TryGetValue(bearerToken, out var tokenInfo) || tokenInfo.expiresAt <= DateTimeOffset.UtcNow)
+		{
+			return Unauthorized(new
+			{
+				authenticated = false
+			});
+		}
+
+		userInfo = await services.users.GetUserById(tokenInfo.userId);
 	}
 	else if (isGetRequest)
 	{
@@ -712,6 +757,12 @@ public async Task<IActionResult> OAuthToken([FromQuery] string? code = null, [Fr
 		iat = now,
 		exp = expiresAt,
 	});
+
+	IssuedAccessTokens[accessToken] = new IssuedOAuthToken
+	{
+		userId = userInfo.userId,
+		expiresAt = DateTimeOffset.UtcNow.AddMinutes(15),
+	};
 
 	return new JsonResult(new
 	{
