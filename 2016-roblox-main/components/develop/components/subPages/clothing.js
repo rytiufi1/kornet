@@ -47,6 +47,24 @@ const detailsMap = {
     title: 'a Mesh',
     fileLabel: '.mesh',
   },
+  10: {
+    name: 'Model',
+    namePlural: 'Models',
+    title: 'a Model',
+    fileLabel: '.rbxm or .rbxmx',
+  },
+  24: {
+    name: 'Animation',
+    namePlural: 'Animations',
+    title: 'an Animation',
+    fileLabel: '.rbxm or .rbxmx',
+  },
+  62: {
+    name: 'Video',
+    namePlural: 'Videos',
+    title: 'a Video',
+    fileLabel: '.webm or .mp4',
+  },
 }
 
 const useStyles = createUseStyles({

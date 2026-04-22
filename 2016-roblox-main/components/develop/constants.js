@@ -22,7 +22,7 @@ const developerPages = [
     id: 10,
     name: 'Models',
     url: '/develop?View=10',
-    disabled: true,
+    element: props => <Clothing id={10} {...props}/>,
   },
   {
     id: 102,
@@ -48,17 +48,23 @@ const developerPages = [
     url: '/develop?View=3',
     element: props => <Clothing id={3} {...props}/>,
   },
-/*   {
+  {
     id: 24,
     name: 'Animations',
     url: '/develop?View=24',
-    disabled: true,
-  }, */
+    element: props => <Clothing id={24} {...props}/>,
+  },
   {
     id: 4,
     name: 'Meshes',
     url: '/develop?View=4',
     element: props => <Clothing id={4} {...props}/>,
+  },
+  {
+    id: 62,
+    name: 'Videos',
+    url: '/develop?View=62',
+    element: props => <Clothing id={62} {...props}/>,
   },
   {
     id: 101,

@@ -626,6 +626,9 @@ public class WebController : ControllerBase
         Models.Assets.Type.Pants,
         Models.Assets.Type.Image,
 		Models.Assets.Type.Mesh,
+		Models.Assets.Type.Model,
+		Models.Assets.Type.Animation,
+		Models.Assets.Type.Video,
 		Models.Assets.Type.Badge,
 		Models.Assets.Type.GamePass,
     };
@@ -750,10 +753,13 @@ public class WebController : ControllerBase
 		var isAudio = request.assetType is Models.Assets.Type.Audio;
 		var isImage = request.assetType is Models.Assets.Type.Image;
 		var isMesh = request.assetType is Models.Assets.Type.Mesh;
+		var isModel = request.assetType is Models.Assets.Type.Model;
+		var isAnimation = request.assetType is Models.Assets.Type.Animation;
+		var isVideo = request.assetType is Models.Assets.Type.Video;
 		var isBadge = request.assetType is Models.Assets.Type.Badge;
 		var isGamePass = request.assetType is Models.Assets.Type.GamePass;
 
-		if (!isClothing && !isAudio && !isImage && !isMesh && !isBadge && !isGamePass)
+		if (!isClothing && !isAudio && !isImage && !isMesh && !isModel && !isAnimation && !isVideo && !isBadge && !isGamePass)
 			throw new RobloxException(400, 0, "Endpoint does not support this assetType: " + request.assetType);
         
         // Limit of 50 assets globally pending approval before failure
@@ -984,6 +990,64 @@ public class WebController : ControllerBase
 					Console.WriteLine($"error generating OBJ for mesh {asset.assetId}: {e}");
 				}
 
+				return asset;
+			}
+			else if (isModel || isAnimation)
+			{
+				var extension = Path.GetExtension(request.file.FileName).ToLowerInvariant();
+				if (extension != ".rbxm" && extension != ".rbxmx")
+				{
+					throw new BadRequestException(0, "You can only upload .rbxm or .rbxmx files");
+				}
+
+				var stream = request.file.OpenReadStream();
+				if (!await services.assets.ValidateAssetFile(stream, request.assetType))
+				{
+					throw new BadRequestException(0, "Invalid RBXM file");
+				}
+
+				stream.Position = 0;
+				var asset = await services.assets.CreateAsset(
+					request.name,
+					null,
+					userSession.userId,
+					creatorType,
+					creatorId,
+					stream,
+					request.assetType,
+					Genre.All,
+					ModerationStatus.AwaitingApproval);
+
+				await services.users.CreateUserAsset(userSession.userId, asset.assetId);
+				return asset;
+			}
+			else if (isVideo)
+			{
+				var extension = Path.GetExtension(request.file.FileName).ToLowerInvariant();
+				if (extension != ".webm" && extension != ".mp4" && extension != ".mov" && extension != ".m4v")
+				{
+					throw new BadRequestException(0, "You can only upload .webm, .mp4, .mov, or .m4v files");
+				}
+
+				var stream = request.file.OpenReadStream();
+				if (!await services.assets.ValidateAssetFile(stream, request.assetType))
+				{
+					throw new BadRequestException(0, "Invalid video file");
+				}
+
+				stream.Position = 0;
+				var asset = await services.assets.CreateAsset(
+					request.name,
+					null,
+					userSession.userId,
+					creatorType,
+					creatorId,
+					stream,
+					request.assetType,
+					Genre.All,
+					ModerationStatus.AwaitingApproval);
+
+				await services.users.CreateUserAsset(userSession.userId, asset.assetId);
 				return asset;
 			}
 			else if (isBadge || isGamePass)

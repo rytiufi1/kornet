@@ -332,6 +332,7 @@ namespace Roblox.Website.Controllers
                 case Models.Assets.Type.FrontAccessory:
                 case Models.Assets.Type.BackAccessory:
                 case Models.Assets.Type.WaistAccessory:
+                case Models.Assets.Type.Video:
                 case Models.Assets.Type.ClimbAnimation:
                 case Models.Assets.Type.DeathAnimation:
                 case Models.Assets.Type.FallAnimation:
@@ -355,8 +356,6 @@ namespace Roblox.Website.Controllers
                     {
                         assetContent = await services.assets.GetAssetContent(latestVersion.contentUrl);
                     }
-                    break;
-                case Models.Assets.Type.Video:
                     break;
                 default:
                     // anything else requires auth
