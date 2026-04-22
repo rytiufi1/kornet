@@ -398,6 +398,7 @@ namespace Roblox.Rendering
 			var jobId = Guid.NewGuid().ToString();
 			var baseUrl = Roblox.Configuration.BaseUrl;
 			var assetUrl = $"{baseUrl}/Asset/?id={assetId}&apikey=rccservislwkeueueeuww39";
+			const long defaultMannequinId = 1785197;
 
 			var Json = new
 			{
@@ -412,6 +413,7 @@ namespace Roblox.Rendering
 						840,
 						840,
 						baseUrl,
+						defaultMannequinId,
 					}
 				}
 			};
