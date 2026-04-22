@@ -185,7 +185,9 @@ public class ThumbnailsService : ServiceBase, IService
 				}
 				else if (c.type is Type.Model or Type.Lua)
 				{
-					final = "/img/Model.png";
+					final = !string.IsNullOrEmpty(c.thumbnailUrl)
+						? "/images/thumbnails/" + c.thumbnailUrl + ".png"
+						: "/img/Model.png";
 				}
 				else if (!string.IsNullOrEmpty(c.thumbnailUrl))
 				{
