@@ -31,11 +31,6 @@ namespace Roblox.Website.Controllers
     [MVC.Route("/")]
     public class Assets : ControllerBase 
     {		
-        public static readonly HashSet<long> StarterPlaceIds = new HashSet<long>
-        {
-            3108, 3097, 2958, 3079, 3077, 3109, 3096, 3112, 3113, 3099, 3111, 3110, 3107, 3068
-        };
-
 	    [HttpGet("asset/shader")]
         public async Task<MVC.ActionResult> GetShaderAsset(long id)
         {
@@ -223,7 +218,6 @@ namespace Roblox.Website.Controllers
 				{
 					var ourId = await services.assets.GetAssetIdFromRobloxAssetId(assetId);
 					assetId = ourId;
-                    Console.WriteLine($"[debug] remapped assetId to local id: {assetId}");
 				}
 				catch (RecordNotFoundException)
 				{		
@@ -279,12 +273,9 @@ namespace Roblox.Website.Controllers
 				}
 				details = await services.assets.GetAssetCatalogInfo(assetId);
 			}
-
-            Console.WriteLine($"[debug] pre-guard check: assetId={assetId}, is18Plus={details.is18Plus}, moderationStatus={details.moderationStatus}, creatorType={details.creatorType}, creatorTargetId={details.creatorTargetId}, isRcc={isRcc}, isBotRequest={isBotRequest}, is18OrOver={is18OrOver}, StarterPlaceIds.Contains={StarterPlaceIds.Contains(assetId)}, StarterPlaceIds=[{string.Join(",", StarterPlaceIds)}]");
-
-			if (details.is18Plus && !isRcc && !isBotRequest && !is18OrOver && !StarterPlaceIds.Contains(assetId) && !(details.creatorType == CreatorType.User && details.creatorTargetId == 1))
+			if (details.is18Plus && !isRcc && !isBotRequest && !is18OrOver)
 				throw new RobloxException(400, 0, "AssetTemporarilyUnavailable");
-			if (details.moderationStatus != ModerationStatus.ReviewApproved && !isRcc && !isBotRequest && !StarterPlaceIds.Contains(assetId) && !(details.creatorType == CreatorType.User && details.creatorTargetId == 1))
+			if (details.moderationStatus != ModerationStatus.ReviewApproved && !isRcc && !isBotRequest)
 				throw new RobloxException(403, 0, "Asset is not approved");
             
             var latestVersion = await services.assets.GetLatestAssetVersion(assetId);
@@ -367,15 +358,9 @@ namespace Roblox.Website.Controllers
                     }
                     break;
                 default:
+                    // anything else requires auth
                     var ok = false;
-                    Console.WriteLine($"[debug] default branch entered: assetId={assetId}, StarterPlaceIds.Contains={StarterPlaceIds.Contains(assetId)}");
-                    if (StarterPlaceIds.Contains(assetId))
-                    {
-                        Console.WriteLine($"[debug] starter place bypass triggered for assetId={assetId}");
-                        ok = true;
-                        encryptionEnabled = false;
-                    }
-                    else if (isRcc)
+                    if (isRcc)
                     {
                         encryptionEnabled = false;
 						ok = true;
@@ -583,4 +568,4 @@ namespace Roblox.Website.Controllers
             return Content(Newtonsoft.Json.JsonConvert.SerializeObject(assetReturnInfo), "application/json");
         }
 	}
-}
+}	
