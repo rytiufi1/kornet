@@ -10,16 +10,13 @@ pcall(function() game:GetService("ContentProvider"):SetBaseUrl(baseUrl) end)
 game:GetService("ScriptContext").ScriptsDisabled = true
 game:GetService("UserInputService").MouseIconEnabled = false
 
+local player = game:GetService("Players"):CreateLocalPlayer(0)
+player.CharacterAppearance = characterAppearanceUrl
+player:LoadCharacterBlocking()
 
-local r15RigUrl = baseUrl .. "/asset/?id=516159357"
-local character = game:GetObjects(r15RigUrl)[1]
-assert(character ~= nil, "Failed to load R15 rig")
-character.Parent = workspace
+ThumbnailGenerator:AddProfilingCheckpoint("PlayerCharacterLoaded")
 
-ThumbnailGenerator:AddProfilingCheckpoint("R15RigLoaded")
-
-
-local poseAnimationId = baseUrl .. "/asset/?id=532421348"
+local poseAnimationId = "http://kornet.lat/asset/?id=532421348"
 local function getJointBetween(part0, part1)
     for _, obj in pairs(part1:GetChildren()) do
         if obj:IsA("Motor6D") and obj.Part0 == part0 then
@@ -203,12 +200,13 @@ local function applyAssetsToCharacter(character, humanoid, assetIds)
 					end
 				end
             else
-                warn("failed to load" .. tostring(assetId))
+                warn("[DEBUG] Failed to load asset: " .. tostring(assetId))
             end
         end
     end
 end
 
+local character = player.Character
 if character then
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if humanoid then
