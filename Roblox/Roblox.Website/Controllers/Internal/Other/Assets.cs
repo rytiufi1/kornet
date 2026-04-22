@@ -223,6 +223,7 @@ namespace Roblox.Website.Controllers
 				{
 					var ourId = await services.assets.GetAssetIdFromRobloxAssetId(assetId);
 					assetId = ourId;
+                    Console.WriteLine($"[debug] remapped assetId to local id: {assetId}");
 				}
 				catch (RecordNotFoundException)
 				{		
@@ -278,9 +279,12 @@ namespace Roblox.Website.Controllers
 				}
 				details = await services.assets.GetAssetCatalogInfo(assetId);
 			}
-			if (details.is18Plus && !isRcc && !isBotRequest && !is18OrOver && !StarterPlaceIds.Contains(assetId))
+
+            Console.WriteLine($"[debug] pre-guard check: assetId={assetId}, is18Plus={details.is18Plus}, moderationStatus={details.moderationStatus}, creatorType={details.creatorType}, creatorTargetId={details.creatorTargetId}, isRcc={isRcc}, isBotRequest={isBotRequest}, is18OrOver={is18OrOver}, StarterPlaceIds.Contains={StarterPlaceIds.Contains(assetId)}, StarterPlaceIds=[{string.Join(",", StarterPlaceIds)}]");
+
+			if (details.is18Plus && !isRcc && !isBotRequest && !is18OrOver && !StarterPlaceIds.Contains(assetId) && !(details.creatorType == CreatorType.User && details.creatorTargetId == 1))
 				throw new RobloxException(400, 0, "AssetTemporarilyUnavailable");
-			if (details.moderationStatus != ModerationStatus.ReviewApproved && !isRcc && !isBotRequest && !StarterPlaceIds.Contains(assetId))
+			if (details.moderationStatus != ModerationStatus.ReviewApproved && !isRcc && !isBotRequest && !StarterPlaceIds.Contains(assetId) && !(details.creatorType == CreatorType.User && details.creatorTargetId == 1))
 				throw new RobloxException(403, 0, "Asset is not approved");
             
             var latestVersion = await services.assets.GetLatestAssetVersion(assetId);
@@ -364,8 +368,10 @@ namespace Roblox.Website.Controllers
                     break;
                 default:
                     var ok = false;
+                    Console.WriteLine($"[debug] default branch entered: assetId={assetId}, StarterPlaceIds.Contains={StarterPlaceIds.Contains(assetId)}");
                     if (StarterPlaceIds.Contains(assetId))
                     {
+                        Console.WriteLine($"[debug] starter place bypass triggered for assetId={assetId}");
                         ok = true;
                         encryptionEnabled = false;
                     }
