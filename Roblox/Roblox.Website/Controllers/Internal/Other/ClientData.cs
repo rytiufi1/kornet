@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using Roblox.Models.Users;
+using Roblox.Dto.Users;
 using Roblox.Services.Exceptions;
 using Roblox.Website.Middleware;
 using Roblox.Services.App.FeatureFlags;
