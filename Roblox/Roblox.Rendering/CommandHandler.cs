@@ -169,7 +169,15 @@ namespace Roblox.Rendering
 			var charApp = $"{baseUrl}/v1.1/avatar-fetch?placeId=0&userId={userId}";
 
 			object[] arguments;
-			if (renderType == "Closeup")
+			if (renderType == "Avatar3D")
+			{
+				arguments = new object[]
+				{
+					baseUrl,
+					charApp,
+				};
+			}
+			else if (renderType == "Closeup")
 			{
 				arguments = new object[]
 				{
@@ -269,7 +277,7 @@ namespace Roblox.Rendering
 					{
 						await SendCloseJobRequest(port, jobId);
 						
-						if (format == "Obj")
+						if (format is "Obj" or "SplitObjs")
 						{
 							return new MemoryStream(Encoding.UTF8.GetBytes(valueNode.InnerText));
 						}
@@ -301,7 +309,7 @@ namespace Roblox.Rendering
 			await WaitForRccReady(port);
 			var jobId = Guid.NewGuid().ToString();
 			var baseUrl = Roblox.Configuration.BaseUrl;
-			var assetUrl = $"{baseUrl}/Asset/?id={assetId}&apikey=rccservislwkeueueeuww39";
+			var assetUrl = $"{baseUrl}/asset/?id={assetId}";
 
 			var Json = new
 			{
@@ -397,8 +405,29 @@ namespace Roblox.Rendering
 			await WaitForRccReady(port);
 			var jobId = Guid.NewGuid().ToString();
 			var baseUrl = Roblox.Configuration.BaseUrl;
-			var assetUrl = $"{baseUrl}/Asset/?id={assetId}&apikey=rccservislwkeueueeuww39";
+			var assetUrl = $"{baseUrl}/asset/?id={assetId}";
 			const long defaultMannequinId = 1785197;
+
+			object[] args = renderType switch
+			{
+				"Head" or "Shirt" or "Pants" => new object[]
+				{
+					assetUrl,
+					format,
+					840,
+					840,
+					baseUrl,
+					defaultMannequinId,
+				},
+				_ => new object[]
+				{
+					assetUrl,
+					format,
+					840,
+					840,
+					baseUrl,
+				}
+			};
 
 			var Json = new
 			{
@@ -406,15 +435,7 @@ namespace Roblox.Rendering
 				Settings = new
 				{
 					Type = renderType,
-					Arguments = new object[]
-					{
-						assetUrl,
-						format,
-						840,
-						840,
-						baseUrl,
-						defaultMannequinId,
-					}
+					Arguments = args
 				}
 			};
 
@@ -469,7 +490,7 @@ namespace Roblox.Rendering
 					{
 						await SendCloseJobRequest(port, jobId);
 
-						if (format == "Obj")
+						if (format is "Obj" or "SplitObjs")
 						{
 							return new MemoryStream(Encoding.UTF8.GetBytes(valueNode.InnerText));
 						}
@@ -494,6 +515,7 @@ namespace Roblox.Rendering
 				throw;
 			}
 		}
+
 
 		private static async Task<Stream> RenderRcc2020AssetWithFallback(long assetId, IEnumerable<string> renderTypes, string format = "Png", CancellationToken? cancellationToken = null)
 		{
@@ -579,7 +601,7 @@ namespace Roblox.Rendering
 
             try
             {
-                return await RenderRcc2020(userId, "Avatar_R15_Action", "Obj", cancellationToken);
+                return await RenderRcc2020(userId, "Avatar3D", "SplitObjs", cancellationToken);
             }
             finally
             {
@@ -594,11 +616,7 @@ namespace Roblox.Rendering
 			try
 			{
 				_ = assetTypeId;
-				return await RenderRcc2020AssetWithFallback(assetId, new[]
-				{
-					"Decal",
-					"Image"
-				}, "Png", cancellationToken);
+				return await RenderRcc2020Asset(assetId, "Decal", "Png", cancellationToken);
 			}
 			finally
 			{
@@ -619,7 +637,6 @@ namespace Roblox.Rendering
 					"Pants",
 					"Gear",
 					"Model",
-					"Image",
 					"Decal",
 					"MeshPart",
 					"Mesh",
@@ -638,7 +655,78 @@ namespace Roblox.Rendering
 
             try
             {
-                return await RenderRcc2020Asset(assetId, "Hat", "Obj", cancellationToken);
+				var baseUrl = Roblox.Configuration.BaseUrl;
+				var assetUrl = $"{baseUrl}/asset/?id={assetId}";
+				var port = await StartRccService();
+				await WaitForRccReady(port);
+				var jobId = Guid.NewGuid().ToString();
+
+				var Json = new
+				{
+					Mode = "Thumbnail",
+					Settings = new
+					{
+						Type = "Asset3D",
+						Arguments = new object[]
+						{
+							assetUrl,
+							baseUrl,
+						}
+					}
+				};
+
+				var finalJson = JsonSerializer.Serialize(Json);
+
+				var XML = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+		<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance""
+		   xmlns:xsd=""http://www.w3.org/2001/XMLSchema""
+		   xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
+			<soap:Body>
+				<OpenJob xmlns=""http://roblox.com/"">
+					<job>
+						<id>{jobId}</id>
+						<expirationInSeconds>60</expirationInSeconds>
+						<category>0</category>
+						<cores>1</cores>
+					</job>
+					<script>
+						<name>GameServer</name>
+						<script>{finalJson}</script>
+					</script>
+					<arguments>
+						<LuaValue>
+							<type>LUA_TNIL</type>
+						</LuaValue>
+					</arguments>
+				</OpenJob>
+			</soap:Body>
+		</soap:Envelope>";
+
+				var res = await SendSoapRequest(port, "http://roblox.com/OpenJob", XML);
+
+				var xmlDoc = new XmlDocument();
+				xmlDoc.LoadXml(res);
+
+				var NSManager = new XmlNamespaceManager(xmlDoc.NameTable);
+				NSManager.AddNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+				NSManager.AddNamespace("ns1", "http://roblox.com/");
+
+				var resNodes = xmlDoc.SelectNodes("//soap:Envelope/soap:Body/ns1:OpenJobResponse/ns1:OpenJobResult", NSManager);
+				foreach (XmlNode resultNode in resNodes)
+				{
+					var typeNode = resultNode.SelectSingleNode("ns1:type", NSManager);
+					var valueNode = resultNode.SelectSingleNode("ns1:value", NSManager);
+
+					if (typeNode != null && valueNode != null &&
+						typeNode.InnerText == "LUA_TSTRING" &&
+						!string.IsNullOrEmpty(valueNode.InnerText))
+					{
+						await SendCloseJobRequest(port, jobId);
+						return new MemoryStream(Encoding.UTF8.GetBytes(valueNode.InnerText));
+					}
+				}
+
+				throw new Exception("No 3D JSON found in RCC response");
             }
             finally
             {
@@ -713,13 +801,8 @@ namespace Roblox.Rendering
 
 			try
 			{
-				_ = contentId;
-				return await RenderRcc2020AssetWithFallback(assetId, new[]
-				{
-					"Image",
-					"Shirt",
-					"Decal"
-				}, "Png", cancellationToken);
+				_ = assetId;
+				return await RenderRcc2020Asset(contentId, "Decal", "Png", cancellationToken);
 			}
 			finally
 			{

@@ -2919,13 +2919,13 @@ Thank you for your understanding,
 	[HttpPost("asset/re-render-all"), StaffFilter(Access.RequestAssetReRender)]
 	public async Task<IActionResult> RequestAllAssetsReRender()
 	{
-		var allAssets = (await db.QueryAsync("SELECT id, asset_type FROM asset")).ToList();
+		var allAssets = (await db.QueryAsync<(long id, int asset_type)>("SELECT id, asset_type FROM asset")).ToList();
 		var queued = 0;
 
 		foreach (var entry in allAssets)
 		{
-			var assetId = Convert.ToInt64(entry.id);
-			var assetType = (Type)Convert.ToInt32(entry.asset_type);
+			var assetId = entry.id;
+			var assetType = (Type)entry.asset_type;
 
 			if (assetType == Type.Image)
 				continue;
