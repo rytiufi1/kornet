@@ -138,12 +138,13 @@ namespace Roblox.Website.Controllers
 
 			HttpContext.Response.Cookies.Append(SessionMiddleware.CookieName, sessionCookie, new CookieOptions
 			{
+				Domain = ".kornet.lat",
 				HttpOnly = true,
 				Secure = true,
 				Expires = DateTimeOffset.Now.AddDays(364),
 				IsEssential = true,
 				Path = "/",
-				SameSite = SameSiteMode.Lax,
+				SameSite = SameSiteMode.None,
 			});
 
 			return sessionCookie;

@@ -96,6 +96,11 @@ function navigateTarget(url) {
     window.location.href = url;
 }
 
+function isOAuthFlow() {
+    var returnUrl = getparam('returnUrl') || '';
+    return returnUrl.indexOf('/oauth/v1/authorize') !== -1;
+}
+
 function submitLogin(e) {
     e.preventDefault();
     var form = document.getElementById('login-form');
@@ -103,13 +108,23 @@ function submitLogin(e) {
     var spinner = document.getElementById('login-spinner');
     if (loginBtn) loginBtn.style.display = 'none';
     if (spinner) spinner.style.display = 'block';
-    var formData = new FormData(form);
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/login', true);
+    var oauthFlow = isOAuthFlow();
+    var endpoint = oauthFlow ? '/studio-login/v1/login' : '/login';
+    xhr.open('POST', endpoint, true);
     xhr.withCredentials = true;
+    if (oauthFlow) {
+        xhr.setRequestHeader('Content-Type', 'application/json');
+    }
     xhr.onload = function() {
         if (loginBtn) loginBtn.style.display = 'block';
         if (spinner) spinner.style.display = 'none';
+        if (oauthFlow && xhr.status >= 200 && xhr.status < 300) {
+            var returnUrlOAuth = getparam('returnUrl');
+            var oauthTarget = (returnUrlOAuth && returnUrlOAuth.trim() !== '') ? returnUrlOAuth : '/home';
+            navigateTarget(oauthTarget);
+            return;
+        }
         if (document.cookie.includes('.ROBLOSECURITY')) {
             var returnUrl = getparam('returnUrl');
             var target = (returnUrl && returnUrl.trim() !== '') ? returnUrl : '/home';
@@ -139,7 +154,18 @@ function submitLogin(e) {
         if (loginBtn) loginBtn.style.display = 'block';
         if (spinner) spinner.style.display = 'none';
     };
-    xhr.send(formData);
+    if (oauthFlow) {
+        var usernameInput = document.getElementById('login-username');
+        var passwordInput = document.getElementById('login-password');
+        var body = JSON.stringify({
+            username: usernameInput ? usernameInput.value : '',
+            password: passwordInput ? passwordInput.value : ''
+        });
+        xhr.send(body);
+    } else {
+        var formData = new FormData(form);
+        xhr.send(formData);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
