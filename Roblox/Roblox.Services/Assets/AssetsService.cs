@@ -3084,7 +3084,24 @@ WHERE asset_type = :asset_type AND asset.id < :id AND NOT asset.is_18_plus ORDER
 		
 		return await MultiGetInfoById(badgeIds);
 	}
-
+    public readonly Dictionary<string, long> getStarterPlaces = new Dictionary<string, long> 
+    {
+        { "Baseplate", 3108 },
+        { "Flat Terrain", 3097 },
+        { "Starting Place", 2958 },
+        { "Western", 3079 },
+        { "Suburban", 3077 },
+        { "Team/FFA Arena", 3109 },
+        { "Capture The Flag", 3096 },
+        { "City", 3112 },
+        { "Castle", 3113 },
+        { "Obby", 3099 },
+        { "Combat", 3111 },
+        { "Racing", 3110 },
+        { "Pirate Island", 3107 },
+        { "Line Runner", 3068 }
+    };
+    
 	public async Task<IEnumerable<MultiGetEntry>> GetPassesForPlace(long placeId)
 	{
 		var passIds = await db.QueryAsync<long>(
