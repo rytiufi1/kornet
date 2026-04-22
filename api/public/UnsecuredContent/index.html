@@ -51,6 +51,8 @@ html body{font-family:'GothamSSm-Book','Gotham',Arial,sans-serif!important}
     }
 
     var isInIframe = window !== window.top;
+    var returnUrlForFlow = getparam('returnUrl') || '';
+    var isOAuthFlow = returnUrlForFlow.indexOf('/oauth/v1/authorize') !== -1;
     if (isInIframe) {
         try {
             var parentLocation = window.top.location.href;
@@ -63,22 +65,25 @@ html body{font-family:'GothamSSm-Book','Gotham',Arial,sans-serif!important}
         navigateAfterAuth();
         return;
     }
-    
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/apisite/users/v1/users/authenticated', true);
-    xhr.withCredentials = true;
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            try {
-                var response = JSON.parse(xhr.responseText);
-                if (response.id && response.name) {
-                    navigateAfterAuth();
-                }
-            } catch(e) {}
-        }
-    };
-    xhr.onerror = function() {};
-    xhr.send();
+
+   
+    if (!isOAuthFlow) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/apisite/users/v1/users/authenticated', true);
+        xhr.withCredentials = true;
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.id && response.name) {
+                        navigateAfterAuth();
+                    }
+                } catch(e) {}
+            }
+        };
+        xhr.onerror = function() {};
+        xhr.send();
+    }
 })();
 
 function getCookie(name) {
