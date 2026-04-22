@@ -810,9 +810,15 @@ public class AssetsService : ServiceBase, IService
     /// <returns></returns>
     public async Task<Stream> ConvertRobloxPlace(Stream rawPlaceStream, CancellationToken? cancellationToken = null)
     {
-        _ = rawPlaceStream;
-        _ = cancellationToken;
-        throw new NotSupportedException("Place conversion is removed. Websocket renderer is disabled.");
+        byte[] bytes;
+        await using (var memoryStream = new MemoryStream())
+        {
+            await rawPlaceStream.CopyToAsync(memoryStream);
+            bytes = memoryStream.ToArray();
+        }
+
+        var base64Request = Convert.ToBase64String(bytes);
+        return await CommandHandler.RequestPlaceConversion(base64Request, cancellationToken);
     }
 
     /// <summary>
@@ -823,9 +829,15 @@ public class AssetsService : ServiceBase, IService
     /// <returns></returns>
     public async Task<Stream> ConvertHat(Stream rawHatStream, CancellationToken? cancellationToken = null)
     {
-        _ = rawHatStream;
-        _ = cancellationToken;
-        throw new NotSupportedException("Hat conversion is removed. Websocket renderer is disabled.");
+        byte[] bytes;
+        await using (var memoryStream = new MemoryStream())
+        {
+            await rawHatStream.CopyToAsync(memoryStream);
+            bytes = memoryStream.ToArray();
+        }
+
+        var base64Request = Convert.ToBase64String(bytes);
+        return await CommandHandler.RequestHatConversion(base64Request, cancellationToken);
     }
 
 	public async Task CreateGameIcon(long assetId, Stream? thumbnailToUse = null, CancellationToken? cancellationToken = null)
