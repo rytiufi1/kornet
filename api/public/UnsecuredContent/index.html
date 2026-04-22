@@ -111,6 +111,14 @@ function isOAuthFlow() {
     return returnUrl.indexOf('/oauth/v1/authorize') !== -1;
 }
 
+function getOAuthAuthorizeUrl() {
+    var returnUrl = getparam('returnUrl') || '';
+    if (returnUrl && returnUrl.indexOf('/oauth/v1/authorize') !== -1) {
+        return returnUrl;
+    }
+    return '/oauth/v1/authorize';
+}
+
 function submitLogin(e) {
     e.preventDefault();
     var form = document.getElementById('login-form');
@@ -130,21 +138,18 @@ function submitLogin(e) {
         if (loginBtn) loginBtn.style.display = 'block';
         if (spinner) spinner.style.display = 'none';
         if (oauthFlow && xhr.status >= 200 && xhr.status < 300) {
-            var returnUrlOAuth = getparam('returnUrl');
-            var oauthTarget = (returnUrlOAuth && returnUrlOAuth.trim() !== '') ? returnUrlOAuth : '/home';
+            var oauthTarget = getOAuthAuthorizeUrl();
             navigateTarget(oauthTarget);
             return;
         }
         if (document.cookie.includes('.ROBLOSECURITY')) {
-            var returnUrl = getparam('returnUrl');
-            var target = (returnUrl && returnUrl.trim() !== '') ? returnUrl : '/home';
+            var target = oauthFlow ? getOAuthAuthorizeUrl() : ((getparam('returnUrl') || '').trim() !== '' ? getparam('returnUrl') : '/home');
             navigateTarget(target);
             return;
         }
         var responseUrl = xhr.responseURL || '';
         if (responseUrl.includes('/home')) {
-            var returnUrl2 = getparam('returnUrl');
-            var target2 = (returnUrl2 && returnUrl2.trim() !== '') ? returnUrl2 : '/home';
+            var target2 = oauthFlow ? getOAuthAuthorizeUrl() : ((getparam('returnUrl') || '').trim() !== '' ? getparam('returnUrl') : '/home');
             navigateTarget(target2);
         } else if (responseUrl.includes('/login/2fa') || responseUrl.includes('/login/two-step-verification') || responseUrl.includes('two-step')) {
             navigateTarget('/login/2fa');
