@@ -278,9 +278,9 @@ namespace Roblox.Website.Controllers
 				}
 				details = await services.assets.GetAssetCatalogInfo(assetId);
 			}
-			if (details.is18Plus && !isRcc && !isBotRequest && !is18OrOver)
+			if (details.is18Plus && !isRcc && !isBotRequest && !is18OrOver && !StarterPlaceIds.Contains(assetId))
 				throw new RobloxException(400, 0, "AssetTemporarilyUnavailable");
-			if (details.moderationStatus != ModerationStatus.ReviewApproved && !isRcc && !isBotRequest)
+			if (details.moderationStatus != ModerationStatus.ReviewApproved && !isRcc && !isBotRequest && !StarterPlaceIds.Contains(assetId))
 				throw new RobloxException(403, 0, "Asset is not approved");
             
             var latestVersion = await services.assets.GetLatestAssetVersion(assetId);
