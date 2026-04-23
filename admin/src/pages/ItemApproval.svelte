@@ -12,7 +12,6 @@
 	let selectedRequest = null;
 	let editName = "";
 	let editRobux = 0;
-	let editTix = 0;
 	let editCreatorId = 0;
 	let editItemType = "Normal";
 	let editStock = 0;
@@ -44,7 +43,6 @@
 		selectedRequest = req;
 		editName = req.name;
 		editRobux = req.robux_price || req.robuxPrice || 0;
-		editTix = req.tix_price || req.tixPrice || 0;
 		editCreatorId = req.type === "Roblox" ? 1 : req.submitter_id || req.submitterId || 0;
 		editItemType = req.is_limited || req.isLimited ? "LimitedUnique" : "Normal";
 		editStock = req.stock;
@@ -70,7 +68,6 @@
 					id: selectedRequest.id,
 					name: editName,
 					robuxPrice: editRobux,
-					tixPrice: editTix,
 					creatorId: editCreatorId,
 					itemLimitedType: editItemType,
 					stock: editStock,
@@ -149,7 +146,7 @@
 										<small>By ID: {req.submitter_id || req.submitterId || "Guest"}</small>
 									</td>
 									<td>
-										R$ {req.robux_price || req.robuxPrice || 0} | Tix {req.tix_price || req.tixPrice || 0}<br />
+										R$ {req.robux_price || req.robuxPrice || 0}<br />
 										{#if req.is_limited || req.isLimited}
 											<span class="badge bg-warning text-dark">Limited ({req.stock})</span>
 										{/if}
@@ -187,10 +184,6 @@
 					<div class="col-6 mb-3">
 						<label class="form-label">Robux</label>
 						<input type="number" class="form-control" bind:value={editRobux} />
-					</div>
-					<div class="col-6 mb-3">
-						<label class="form-label">Tix</label>
-						<input type="number" class="form-control" bind:value={editTix} />
 					</div>
 				</div>
 				<div class="mb-3">

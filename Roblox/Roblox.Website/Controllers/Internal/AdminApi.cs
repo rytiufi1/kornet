@@ -2420,48 +2420,13 @@ public class AdminApiController : ControllerBase
 	    [HttpPost("givetickets"), StaffFilter(Access.GiveUserRobux)]
     public async Task GiveUserTickets([Required, FromBody] GiveUserTicketsRequest request)
     {
-        // temporary
-        if (request.tickets is <= 0 or > 10000000)
-            throw new StaffException("Invalid ticket amount. Must be between 1 and 10M (inclusive)");
-
-        await db.ExecuteAsync("UPDATE user_economy SET balance_tickets = balance_tickets + :amt WHERE user_id = :user_id",
-            new
-            {
-                user_id = request.userId,
-                amt = request.tickets,
-            });
-        await db.ExecuteAsync(
-            "INSERT INTO moderation_give_tickets (user_id, author_user_id, amount) VALUES (:user_id, :author_user_id, :amount)",
-            new
-            {
-                user_id = request.userId,
-                author_user_id = userSession.userId,
-                amount = request.tickets,
-            });
+        throw new StaffException("Tickets are not supported");
     }
 
     [HttpPost("removetickets"), StaffFilter(Access.GiveUserRobux)]
     public async Task RemoveUserTickets([Required, FromBody] GiveUserTicketsRequest request)
     {
-        // temporary
-
-        if (request.tickets is <= 0 or > 10000000)
-            throw new StaffException("Invalid tickets amount. Must be between 1 and 10M (inclusive)");
-
-        await db.ExecuteAsync("UPDATE user_economy SET balance_tickets = balance_tickets - :amt WHERE user_id = :user_id",
-            new
-            {
-                user_id = request.userId,
-                amt = request.tickets,
-            });
-        await db.ExecuteAsync(
-            "INSERT INTO moderation_give_tickets (user_id, author_user_id, amount) VALUES (:user_id, :author_user_id, :amount)",
-            new
-            {
-                user_id = request.userId,
-                author_user_id = userSession.userId,
-                amount = -request.tickets,
-            });
+        throw new StaffException("Tickets are not supported");
     }
 
     [HttpPost("giverobux"), StaffFilter(Access.GiveUserRobux)]

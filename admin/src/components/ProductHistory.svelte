@@ -6,7 +6,7 @@ import request from "../lib/request";
 
     export let assetId: number;
 
-    let history: {id: number; asset_id: number; name: string; actor_id: number; username: string; is_for_sale: boolean; price_in_tickets: number|null; price_in_robux: number|null; is_limited: boolean; is_limited_unique: boolean; max_copies: number|null; offsale_at: string | null; created_at :string}[];
+    let history: {id: number; asset_id: number; name: string; actor_id: number; username: string; is_for_sale: boolean; price_in_robux: number|null; is_limited: boolean; is_limited_unique: boolean; max_copies: number|null; offsale_at: string | null; created_at :string}[];
 
     $: {
         request.get(`/asset/product-history?assetId=${assetId}`).then(d => {
@@ -31,7 +31,6 @@ import request from "../lib/request";
                             <th>ActorID</th>
                             <th>IsForSale</th>
                             <th>Price (R$)</th>
-                            <th>Price (T$)</th>
                             <th>IsLimited</th>
                             <th>IsLimitedU</th>
                             <th>MaxCopies</th>
@@ -50,7 +49,6 @@ import request from "../lib/request";
                                 </td>
                                 <td>{h.is_for_sale}</td>
                                 <td>{h.price_in_robux}</td>
-                                <td>{h.price_in_tickets}</td>
                                 <td>{h.is_limited}</td>
                                 <td>{h.is_limited_unique}</td>
                                 <td>{h.max_copies}</td>

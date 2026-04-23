@@ -19,11 +19,6 @@ const Bar = props => {
       element: <MySummaryTable></MySummaryTable>,
     },
     {
-      name: 'Convert/Trade Currency',
-      disabled: true,
-      element: null,
-    },
-    {
       name: 'Trade Items',
       element: <MyTradesTable></MyTradesTable>,
     },

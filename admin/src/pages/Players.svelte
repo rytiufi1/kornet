@@ -126,7 +126,6 @@
 			>
 				<option value="user.id">ID</option>
 				<option value="user_economy.balance_robux">RBX</option>
-				<option value="user_economy.balance_tickets">TIX</option>
 				<option value="user.online_at">Online Time</option>
 			</select>
 		</div>
@@ -245,7 +244,6 @@
 						<th>Status</th>
 						<th>Join App</th>
 						<th>RBX</th>
-						<th>TX</th>
 						<th>18+</th>
 					</tr>
 				</thead>
@@ -294,9 +292,6 @@
 							</td>
 							<td>
 								R${typeof i.balance_robux === 'number' ? i.balance_robux.toLocaleString() : "0"}
-							</td>
-							<td>
-								T${typeof i.balance_tickets === 'number' ? i.balance_tickets.toLocaleString() : "0"}
 							</td>
 							<td>
 								{#if i.is_18_plus}

@@ -151,7 +151,6 @@
 								<p class="mb-0">Last Online {moment(info.data.online_at).fromNow()} ({moment(info.data.online_at).format("MMM DD YYYY, h:mm A")})</p>
 								<p class="mb-2">
 									<span class="badge bg-success">{typeof info.data.balance_robux === "number" ? info.data.balance_robux.toLocaleString() : "0"} Robux</span>
-									<span class="badge bg-warning">{typeof info.data.balance_tickets === "number" ? info.data.balance_tickets.toLocaleString() : "0"} Tix</span>
 								</p>
 								<div class="row">
 									<div class="col-6">

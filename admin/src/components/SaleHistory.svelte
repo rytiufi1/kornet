@@ -192,7 +192,7 @@
                             </a>
                         </td>
                         <td>
-                            {sale.amount} {sale.currency_type === 1 ? 'Robux' : 'Tickets'}
+                            {sale.amount} Robux
                         </td>
                         <td>{sale.user_asset_id}</td>
                         <td>{sale.created_at}</td>

@@ -31,7 +31,6 @@
 		isLimited: boolean;
 		isLimitedUnique: boolean;
 		priceRobux: number | null;
-		priceTickets: number | null;
 		serialCount: number | null;
 		offsaleAt: string | null;
 		isVisible: boolean;
@@ -86,10 +85,8 @@
 	function triggerQuickOffsale() {
 		if (confirm("Take item offsale?")) {
 			const robux = getElementById("priceRobux") as HTMLInputElement;
-			const tix = getElementById("priceTickets") as HTMLInputElement;
 			const forSale = getElementById("is_for_sale") as HTMLInputElement;
 			if (robux) robux.value = "";
-			if (tix) tix.value = "";
 			if (forSale) forSale.checked = false;
 			handleUpdateProduct(); // Run the update logic
 		}
@@ -102,7 +99,6 @@
 		const name = (getElementById("asset-name") as HTMLInputElement).value;
 		const desc = (getElementById("asset-description") as HTMLTextAreaElement).value;
 		const robuxVal = (getElementById("priceRobux") as HTMLInputElement).value || "0";
-		const tixVal = (getElementById("priceTickets") as HTMLInputElement).value || "0";
 		const stockVal = (getElementById("max-copies") as HTMLInputElement).value || "N/A";
 		const isForSale = (getElementById("is_for_sale") as HTMLInputElement).checked;
 
@@ -168,7 +164,6 @@
 				isForSale,
 				maxCopies: parseInt(stockVal) || null,
 				priceRobux: parseInt(robuxVal) || null,
-				priceTickets: parseInt(tixVal) || null,
 				offsaleDeadline,
 				isLimited: itemType !== "Normal",
 				isLimitedUnique: itemType === "Limited U",
@@ -193,7 +188,6 @@
 							fields: [
 								{ name: "🏷️ Type", value: itemType, inline: true },
 								{ name: "<:Robux:1440045662484824274> Price", value: robuxVal, inline: true },
-								{ name: "<:TIX:1455003248195797185> TIX", value: tixVal, inline: true },
 								{ name: "📊 Stock", value: stockVal, inline: true },
 								{ name: "🕒 Dropped At", value: `<t:${Math.floor(Date.now() / 1000)}:t>`, inline: true },
 							],
@@ -286,10 +280,6 @@
 								<div class="col-2">
 									<label for="priceRobux">R$ Price</label>
 									<input type="text" class="form-control" id="priceRobux" {disabled} value={assetDetails.priceRobux || ""} />
-								</div>
-								<div class="col-2">
-									<label for="priceTickets">TX$ Price</label>
-									<input type="text" class="form-control" id="priceTickets" {disabled} value={assetDetails.priceTickets || ""} />
 								</div>
 								<div class="col-2 mt-4">
 									<label for="is_for_sale">For Sale: </label>

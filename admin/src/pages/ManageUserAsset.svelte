@@ -53,7 +53,7 @@
 								<td>{moment(entry.created_at).fromNow()} <br />{moment(entry.created_at).format("dddd, MMMM Do, YYYY h:mma")}</td>
 								<td>
 									{#if entry.track_type === "Sale"}
-										<p>User "{entry.user_one_username}" purchased from "{entry.user_two_username}" for {entry.amount.toLocaleString()} {entry.currency_type === 1 ? "Robux" : "Tix"}</p>
+										<p>User "{entry.user_one_username}" purchased from "{entry.user_two_username}" for {entry.amount.toLocaleString()} Robux</p>
 									{:else if entry.track_type === "Trade"}
 										<p>User "{entry.user_one_username}" traded the item to "{entry.user_two_username}" - TradeID #{entry.id}</p>
 									{:else if entry.track_type === "ModerationGive"}

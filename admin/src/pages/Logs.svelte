@@ -46,7 +46,6 @@
 					<option value="ban">BAN</option>
 					<option value="unban">UNBAN</option>
 					<option value="robux">ROBUX</option>
-					<option value="tickets">TICKETS</option>
 					<option value="item">ITEMS</option>
 					<option value="alert">ALERT</option>
 					<option value='applications'>APPLICATIONS</option>
