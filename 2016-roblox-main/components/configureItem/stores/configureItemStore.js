@@ -1,7 +1,6 @@
 import {createContainer} from "unstated-next";
 import {useState} from "react";
 import {setAssetPrice, updateAsset} from "../../../services/develop";
-import getFlag from "../../../lib/getFlag";
 
 const ConfigureItemStore = createContainer(() => {
   const [assetId, setAssetId] = useState(null);
@@ -13,7 +12,6 @@ const ConfigureItemStore = createContainer(() => {
   const [description, setDescription] = useState(null);
   // 0 = free, null = unset
   const [price, setPrice] = useState(null);
-  const [priceTickets, setPriceTickets] = useState(null);
   const [isForSale, setIsForSale] = useState(false);
   const [commentsEnabled, setCommentsEnabled] = useState(false);
   const [genres, setGenres] = useState(null);
@@ -33,9 +31,6 @@ const ConfigureItemStore = createContainer(() => {
       setPrice(newDetails.price);
       setCommentsEnabled(newDetails.commentsEnabled);
       setGenres(newDetails.genres);
-      if (getFlag('sellItemForTickets', true)) {
-        setPriceTickets(newDetails.priceTickets);
-      }
     },
 
     error,
@@ -49,9 +44,6 @@ const ConfigureItemStore = createContainer(() => {
 
     price,
     setPrice,
-
-    priceTickets,
-    setPriceTickets,
 
     isForSale,
     setIsForSale,
@@ -72,7 +64,6 @@ const ConfigureItemStore = createContainer(() => {
       Promise.all([
         setAssetPrice({assetId,
           priceInRobux: Number.isSafeInteger(price) ? price : null,
-          priceInTickets: Number.isSafeInteger(parseInt(priceTickets,10)) ? priceTickets : null,
         }),
         updateAsset({
           assetId,

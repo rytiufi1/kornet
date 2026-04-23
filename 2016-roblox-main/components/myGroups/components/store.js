@@ -3,7 +3,6 @@ import {getItemDetails, itemNameToEncodedName, searchCatalog} from "../../../ser
 import ItemImage from "../../itemImage";
 import Link from "../../link";
 import Robux from "../../robux";
-import Tickets from "../../tickets";
 
 const GroupStore = props => {
   const {groupId} = props;
@@ -54,11 +53,6 @@ const GroupStore = props => {
                 <div className='w-100'>
                   {
                     v.isForSale && v.price !== null ? <Robux>{v.price}</Robux> : null
-                  }
-                </div>
-                <div className='w-100'>
-                  {
-                    v.isForSale && v.priceTickets !== null ? <Tickets>{v.priceTickets}</Tickets> : null
                   }
                 </div>
               </div>

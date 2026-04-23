@@ -22,13 +22,13 @@ const CatalogDetailsPageModal = createContainer(() => {
     currency,
     setCurrency,
 
-    openPurchaseModal: (details, currentBalanceRobux, currentBalanceTix, currency) => {
+    openPurchaseModal: (details, currentBalanceRobux) => {
       if (isPurchasing) return;
       setIsPurchasePromptOpen(true);
       setPurchaseDetails(details);
-      setCurrency(currency);
+      setCurrency(1);
 
-      const newBalance = currency === 1 ? (currentBalanceRobux - details.price) : currentBalanceTix - details.priceTickets;
+      const newBalance = currentBalanceRobux - details.price;
       if (newBalance < 0) {
         setPurchaseState('INSUFFICIENT_FUNDS');
       } else {
@@ -51,8 +51,8 @@ const CatalogDetailsPageModal = createContainer(() => {
           productId: purchaseDetails.productId,
           sellerId: purchaseDetails.sellerId,
           userAssetId: purchaseDetails.userAssetId,
-          price: currency === 1 ? purchaseDetails.price : purchaseDetails.priceTickets,
-          expectedCurrency: currency,
+          price: purchaseDetails.price,
+          expectedCurrency: 1,
         });
         const success = result.purchased;
         if (!success) {

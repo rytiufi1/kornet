@@ -10,7 +10,6 @@ import CreatorLink from "../../../creatorLink";
 import Robux from "../../../robux";
 import thumbnailStore from "../../../../stores/thumbnailStore";
 import Link from "../../../link";
-import Tickets from "../../../tickets";
 import AudioPlayButton from "../../../catalogDetailsPage/components/audioPlayButton";
 import { getLibraryItemUrl } from "../../../../services/games";
 
@@ -99,10 +98,6 @@ const PriceText = (props) => {
     } else if (props.price !== null) {
       priceElements.push(<p className='mb-0'><Robux>{props.price}</Robux></p>)
     }
-    // If item is free, why would anyone pay in tickets?
-    if (props.priceTickets !== null && props.price !== 0) {
-      priceElements.push(<p className='mb-0'><Tickets>{props.priceTickets}</Tickets></p>)
-    }
   }
 
   if (props.isForSale && props.price !== 0 && props.price !== null) {
@@ -153,9 +148,8 @@ const CatalogPageCard = props => {
   const hasTopOverlay = isNew || isSale;
 
   const hasRobux = props.isForSale && props.price !== null;
-  const hasTickets = props.isForSale && props.priceTickets !== null;
   const hasBeforePrice = !props.isForSale && (isLimited || isLimitedU);
-  const nameHeight = ((hasRobux && hasTickets) || hasBeforePrice) ? 18 : 36;
+  const nameHeight = (hasBeforePrice) ? 18 : 36;
   const nameRef = useRef(null);
   const [cardMarginBottom, setCardMarginBottom] = useState(0);
 
@@ -167,7 +161,7 @@ const CatalogPageCard = props => {
       const diff = nameHeight - totalHeight;
       setCardMarginBottom(diff);
     }
-  }, [hasTickets, hasBeforePrice]);
+  }, [hasBeforePrice]);
 
   return <div className={`${c}`} onMouseEnter={() => setShowDetails(true)} onMouseLeave={() => setShowDetails(false)}>
     <div ref={cardRef} className={isLarge ? s.imageBig : s.imageSmall} >

@@ -242,42 +242,7 @@ public class EconomyControllerV2 : ControllerBase
     public async Task<dynamic> GetMarketActivity()
     {
         FeatureCheckMarket();
-        
-        var robuxAverage = await services.currencyExchange.GetAverageRate(CurrencyType.Robux);
-        var tixAverage = await services.currencyExchange.GetAverageRate(CurrencyType.Tickets);
-
-        var robuxHigh = await services.currencyExchange.GetHigh(CurrencyType.Robux);
-        var robuxLow = await services.currencyExchange.GetLow(CurrencyType.Robux);
-
-        var tixHigh = await services.currencyExchange.GetHigh(CurrencyType.Tickets);
-        var tixLow = await services.currencyExchange.GetLow(CurrencyType.Tickets);
-
-        var robuxPositions = await services.currencyExchange.GetPositionsGroupByRate(CurrencyType.Robux);
-        var tixPositions = await services.currencyExchange.GetPositionsGroupByRate(CurrencyType.Tickets);
-        
-        return new
-        {
-            average = new
-            {
-                robuxToTickets = robuxAverage,
-                ticketsToRobux = tixAverage,
-            },
-            high = new
-            {
-                robuxToTickets = robuxHigh,
-                ticketsToRobux = tixHigh,
-            },
-            low = new
-            {
-                robuxToTickets = robuxLow,
-                ticketsToRobux = tixLow,
-            },
-            positions = new
-            {
-                robux = robuxPositions,
-                tickets = tixPositions,
-            }
-        };
+        throw new RobloxException(400, 0, "Tickets are not supported");
     }
 	
 	[HttpPost("currency-exchange/orders/create/trade")]
@@ -292,81 +257,7 @@ public class EconomyControllerV2 : ControllerBase
 	public async Task<IActionResult> CreateCurrencyExchangeOrderConvert([Required, FromBody] CreateExchangeOrderRequest request)
 	{
 		FeatureCheckCurrencyExchange();
-
-		if (request.amount <= 0)
-			return StatusCode(500, new 
-				{
-					errors = new[] 
-					{
-						new { code = 0, message = "Invalid amount" }
-					}
-				});
-
-
-		if (request.amount < 10)
-			return StatusCode(500, new 
-				{
-					errors = new[] 
-					{
-						new { code = 0, message = "You cannot exchange less then 10 Robux/Tix." }
-					}
-				});
-
-
-		const decimal rate = 10m;
-		try
-		{
-			var balance = await services.economy.GetUserBalance(safeUserSession.userId);
-
-			if (request.sourceCurrency == CurrencyType.Robux && balance.robux < request.amount)
-				return StatusCode(500, new 
-					{
-						errors = new[] 
-						{
-							new { code = 0, message = "Insufficient Robux" }
-						}
-					});
-
-				
-			if (request.sourceCurrency == CurrencyType.Tickets && balance.tickets < request.amount)
-				return StatusCode(500, new 
-					{
-						errors = new[] 
-						{
-							new { code = 0, message = "Insufficient Tickets" }
-						}
-					});
-
-			long NewRobux = balance.robux;
-			long NewTix = balance.tickets;
-			
-			if (request.sourceCurrency == CurrencyType.Robux)
-			{
-				NewRobux -= request.amount;
-				NewTix += (long)(request.amount * rate);
-			}
-			else
-			{
-				NewTix -= request.amount;
-				NewRobux += (long)(request.amount / rate);
-			}
-
-			await using var lockhandle = await services.economy.AcquireEconomyLock(CreatorType.User, safeUserSession.userId);
-			
-			await services.economy.SetUserBalance(safeUserSession.userId, NewRobux, NewTix);
-			
-			return Ok();
-		}
-		catch (Exception ex)
-		{
-			return StatusCode(500, new 
-				{
-					errors = new[] 
-					{
-						new { code = 0, message = $"Failed to exchange currency: {ex.Message}" }
-					}
-				});
-		}
+		throw new RobloxException(400, 0, "Tickets are not supported");
 	}
 
     [HttpPost("currency-exchange/orders/{orderId:long}/close")]

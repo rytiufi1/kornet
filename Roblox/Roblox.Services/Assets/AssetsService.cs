@@ -1425,13 +1425,9 @@ public class AssetsService : ServiceBase, IService
     {
         if (priceRobux is < 0)
             throw new ArgumentException(nameof(priceRobux) + " cannot be less than 0");
-        if (priceTickets is < 0)
-            throw new ArgumentException(nameof(priceTickets) + " cannot be less than 0");
-        
-        if (priceTickets == 0)
-            priceTickets = null;
-        
-        
+        // Tickets removed: always clear ticket price.
+        priceTickets = null;
+
         await db.ExecuteAsync("UPDATE asset SET price_robux = :r, price_tix = :t WHERE id = :id", new
         {
             id = assetId,

@@ -2,7 +2,6 @@ import groupAdminStore from "../stores/groupAdminStore";
 import Link from "../../link";
 import styles from './header.module.css';
 import Robux from "../../catalogDetailsPage/components/robux";
-import Tickets from "../../tickets";
 
 const Header = props => {
   const store = groupAdminStore.useContainer();
@@ -27,9 +26,6 @@ const Header = props => {
           store.funds !== null ? <p className='fw-600 mb-0'>
             <span className={styles.labelName}>Group Funds: </span>
             <Robux inline={true}>{store.funds.robux}</Robux>
-            {
-              store.funds.tickets !== undefined ? <span className='ms-2'><Tickets>{store.funds.tickets}</Tickets></span> : null
-            }
           </p> : null
         }
       </div> : null

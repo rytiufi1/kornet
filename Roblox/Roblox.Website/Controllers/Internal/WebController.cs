@@ -238,7 +238,7 @@ public class WebController : ControllerBase
                         Product = new
                         {
                             PriceInRobux = c.price,
-                            PriceInTickets = c.priceTickets,
+                            PriceInTickets = (int?)null,
                             IsForSale = c.isForSale,
                             Is18Plus = c.is18Plus,
                             IsLimited = c.itemRestrictions.Contains("Limited"),

@@ -8,7 +8,6 @@ import CatalogDetailsPageModal from "../stores/catalogDetailsPageModal";
 import ItemImage from "../../itemImage";
 import Robux from "./robux";
 import Link from "../../link";
-import Tickets from "../../tickets";
 
 const useDescStyles = createUseStyles({
   purchaseText: {
@@ -31,13 +30,9 @@ const ModalDescription = props => {
     case 'PURCHASE':
       let priceElement = <Robux inline={true}>{sellerDetails.price}</Robux>
       let action = 'buy';
-      if (modalStore.currency === 2) {
-        priceElement = <Tickets inline={true}>{sellerDetails.priceTickets}</Tickets>
-      } else {
-        if (sellerDetails.price === 0) {
-          priceElement = <span>Free</span>
-          action = 'take';
-        }
+      if (sellerDetails.price === 0) {
+        priceElement = <span>Free</span>
+        action = 'take';
       }
       return (
         <p className={s.purchaseText}>
@@ -45,19 +40,10 @@ const ModalDescription = props => {
         </p>
       );
     case 'PURCHASE_OK':
-      let priceStuff = modalStore.currency === 2 ?
-        <Tickets inline={true}>{sellerDetails.priceTickets}</Tickets> :
-        <Robux inline={true}>{sellerDetails.price}</Robux>;
-
-      return <p className={s.purchaseText}>You have successfully bought the {store.details.name} {store.subCategoryDisplayName} from {sellerDetails.sellerName} for {priceStuff}.</p>;
+      return <p className={s.purchaseText}>You have successfully bought the {store.details.name} {store.subCategoryDisplayName} from {sellerDetails.sellerName} for <Robux inline={true}>{sellerDetails.price}</Robux>.</p>;
     case 'INSUFFICIENT_FUNDS':
-      if (modalStore.currency === 1) {
-        return <p className={s.purchaseText}>
-          You need <Robux inline={true}>{sellerDetails.price - auth.robux}</Robux> more to purchase this item.
-        </p>;
-      }
       return <p className={s.purchaseText}>
-        You need <Tickets inline={true}>{sellerDetails.priceTickets - auth.tix}</Tickets> more to purchase this item.
+        You need <Robux inline={true}>{sellerDetails.price - auth.robux}</Robux> more to purchase this item.
       </p>;
     case 'PURCHASE_ERROR':
       return <p className={s.purchaseText}>
@@ -242,18 +228,13 @@ const BuyItemModal = props => {
   if (store.details === null) return null;
 
   const sellerDetails = modalStore.purchaseDetails;
-  const newBalance = modalStore.currency === 1 ? authStore.robux - sellerDetails.price : authStore.tix - sellerDetails.priceTickets;
+  const newBalance = authStore.robux - sellerDetails.price;
 
-  const AfterTransactionBalance = () => {
-    if (modalStore.currency === 1) {
-      return (
-        <p className={s.footerText}>
-          Your balance after this transaction will be <img src="/img/img-robux.png" style={{ width: '14px', filter: 'grayscale(1) opacity(0.5)' }} /> {newBalance.toLocaleString()}
-        </p>
-      );
-    }
-    return <p className={s.footerText}>Your balance after this transaction will be <img src="/img/img-tickets.png" style={{ width: '14px', filter: 'grayscale(1) opacity(0.5)' }} /> {newBalance.toLocaleString()}</p>
-  }
+  const AfterTransactionBalance = () => (
+    <p className={s.footerText}>
+      Your balance after this transaction will be <img src="/img/img-robux.png" style={{ width: '14px', filter: 'grayscale(1) opacity(0.5)' }} /> {newBalance.toLocaleString()}
+    </p>
+  );
 
   return <div className={s.modalBg}>
     <div className={s.modalWrapper}>

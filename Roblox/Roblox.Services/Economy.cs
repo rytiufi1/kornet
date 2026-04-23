@@ -213,21 +213,10 @@ public class EconomyService : ServiceBase, IService
             {
                 throw new Exception("Bad creatorType");
             }
-        }else if (currency == CurrencyType.Tickets)
+        }
+        else if (currency == CurrencyType.Tickets)
         {
-            if (creatorType == CreatorType.User)
-            {
-                await UnsafeIncrementUserTickets(creatorId, amount);
-                newBalance = (await GetUserBalance(creatorId)).tickets;   
-            }else if (creatorType == CreatorType.Group)
-            {
-                await UnsafeIncrementGroupTickets(creatorId, amount);
-                newBalance = (await GetGroupBalance(creatorId)).tickets;
-            }
-            else
-            {
-                throw new Exception("Bad creatorType");
-            }
+            throw new ArgumentException("Tickets are not supported");
         }
         else
         {
@@ -262,21 +251,10 @@ public class EconomyService : ServiceBase, IService
             {
                 throw new Exception("Bad creatorType");
             }
-        }else if (currency == CurrencyType.Tickets)
+        }
+        else if (currency == CurrencyType.Tickets)
         {
-            if (creatorType == CreatorType.User)
-            {
-                await UnsafeDecrementUserTickets(creatorId, amount);
-                newBalance = (await GetUserBalance(creatorId)).tickets;
-            }else if (creatorType == CreatorType.Group)
-            {
-                await UnsafeDecrementGroupTickets(creatorId, amount);
-                newBalance = (await GetGroupBalance(creatorId)).tickets;
-            }
-            else
-            {
-                throw new Exception("Bad creatorType");
-            }
+            throw new ArgumentException("Tickets are not supported");
         }
         else
         {

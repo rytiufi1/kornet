@@ -8,7 +8,7 @@ const Payout = props => {
   const store = groupAdminStore.useContainer();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [currencyType, setCurrencyType] = useState('Robux'); // default Robux
+  const currencyType = 'Robux';
 
   return <div className='col-12 mt-4'>
     <h3>One-Time Payout</h3>
@@ -33,23 +33,6 @@ const Payout = props => {
             <input type='text' value={amount} onChange={e => {
               setAmount(e.currentTarget.value);
             }} className={btnStyles.legacyInput} />
-          </div>
-        </div>
-
-        <div className='row'>
-          <div className='col-3 pe-0'>
-            <p className='text-end fw-bold'>Currency Type:</p>
-          </div>
-          <div className='col-9 ps-1'>
-            <select 
-              value={currencyType} 
-              onChange={e => setCurrencyType(e.target.value)}
-              className={btnStyles.legacyButton}
-              style={{padding: '0.375rem 0.75rem'}}
-            >
-              <option value="Robux">Robux</option>
-              <option value="Tickets">Tickets</option>
-            </select>
           </div>
         </div>
 

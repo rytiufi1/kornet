@@ -13,7 +13,6 @@ const AuthenticationStore = createContainer(() => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPending, setIsPending] = useState(true);
   const [robux, setRobux] = useState(null);
-  const [tix, setTix] = useState(null);
   const [notificationCount, setNotificationCount] = useState({
     messages: 0,
     trades: 0,
@@ -47,7 +46,6 @@ const AuthenticationStore = createContainer(() => {
     // Get Robux
     getRobux({ userId }).then((data) => {
       setRobux(data.robux || 0);
-      setTix(data.tickets || 0);
     }).catch(e => {
       // what do we do here?
       console.error('[error] robux error', e);
@@ -73,7 +71,6 @@ const AuthenticationStore = createContainer(() => {
     isPending,
 
     robux,
-    tix,
 
     notificationCount,
     isVerified,

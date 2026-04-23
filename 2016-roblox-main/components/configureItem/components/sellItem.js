@@ -2,8 +2,6 @@ import {createUseStyles} from "react-jss";
 import configureItemStore from "../stores/configureItemStore";
 import Robux from "../../robux";
 import {useState} from "react";
-import Tickets from "../../tickets";
-import getFlag from "../../../lib/getFlag";
 
 const useStyles = createUseStyles({
   inline: {
@@ -17,12 +15,11 @@ const useStyles = createUseStyles({
 });
 
 const SellItemCurrency = props => {
-  const {currency} = props; // 1 = Robux, 2 = tix
   const [feedback, setFeedback] = useState(null);
   const store = configureItemStore.useContainer();
   const s = useStyles();
 
-  const [price, setPrice] = currency === 2 ? [store.priceTickets, store.setPriceTickets] : [store.price, store.setPrice];
+  const [price, setPrice] = [store.price, store.setPrice];
 
   let marketplaceFee = Math.trunc(price * 0.3);
   if (marketplaceFee < 1) {
@@ -35,9 +32,6 @@ const SellItemCurrency = props => {
 
   const CurrencyWrapper = (props) => {
     const {children} = props;
-    if (currency === 2) {
-      return <Tickets>{children}</Tickets>
-    }
     return <Robux>{children}</Robux>
   }
 
@@ -53,11 +47,11 @@ const SellItemCurrency = props => {
     <div className={s.inline}>
       <input disabled={!store.isForSale || store.locked} type='text' value={store.isForSale ? price : ''} onChange={e => {
         let newValue = parseInt(e.currentTarget.value, 10);
-        const isFree = (newValue === 0 && currency === 1);
+        const isFree = (newValue === 0);
         if ((newValue > 1000000 || newValue < 2 || isNaN(newValue)) && !isFree) {
           if (e.currentTarget.value !== '')
             setFeedback(
-              currency === 1 ? 'Price must be between R$2 and R$1,000,000' : 'Price must be between T$2 and T$1,000,000'
+              'Price must be between R$2 and R$1,000,000'
             );
           setPrice(e.currentTarget.value);
         }else {
@@ -106,8 +100,7 @@ const SellItem = props => {
       }} />
       <p className='d-inline ms-2'>Sell this item</p>
     </div>
-    <SellItemCurrency currency={1} />
-    <SellItemCurrency currency={2}/>
+    <SellItemCurrency />
   </div>
 }
 

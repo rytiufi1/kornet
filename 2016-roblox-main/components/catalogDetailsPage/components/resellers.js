@@ -72,7 +72,7 @@ const SellerEntry = props => {
           })
         }}></ActionButton> : <ActionButton className={s.button + ' ' + buttonStyles.buyButton} onClick={(e) => {
           e.preventDefault();
-          modalStore.openPurchaseModal(store.getPurchaseDetails(props.userAssetId), authStore.robux, authStore.tix, 1);
+          modalStore.openPurchaseModal(store.getPurchaseDetails(props.userAssetId), authStore.robux);
         }}></ActionButton>
       }
     </div>

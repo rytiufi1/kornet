@@ -660,8 +660,8 @@ public class GroupsControllerV1 : ControllerBase
 		if (request.PayoutType != "FixedAmount")
 			throw new RobloxException(400, 0, "Feature is not supported");
 
-		if (request.CurrencyType != CurrencyType.Robux && request.CurrencyType != CurrencyType.Tickets)
-			throw new RobloxException(400, 0, "Invalid currency type");
+		if (request.CurrencyType != CurrencyType.Robux)
+			throw new RobloxException(400, 0, "Tickets are not supported");
 		
 		foreach (var user in request.Recipients)
 		{

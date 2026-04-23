@@ -13,7 +13,6 @@ import CreatorLink from "../creatorLink";
 import Robux from "../robux";
 import thumbnailStore from "../../stores/thumbnailStore";
 import Link from "../link";
-import Tickets from "../tickets";
 
 const useCatalogPageStyles = createUseStyles({
   image: {
@@ -129,10 +128,6 @@ const PriceText = (props) => {
       priceElements.push(<p className='mb-0 text-dark'>Free</p>)
     } else if (props.price !== null) {
       priceElements.push(<p className='mb-0'><Robux>{props.price}</Robux></p>)
-    }
-    // If item is free, why would anyone pay in tickets?
-    if (props.priceTickets !== null && props.price !== 0) {
-      priceElements.push(<p className='mb-0'><Tickets>{props.priceTickets}</Tickets></p>)
     }
   }
 

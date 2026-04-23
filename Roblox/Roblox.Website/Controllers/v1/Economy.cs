@@ -155,18 +155,7 @@ public class EconomyControllerV1 : ControllerBase
         }
         // Confirm price matches
         var userBalance = await services.economy.GetUserBalance(safeUserSession.userId);
-        if (request.expectedCurrency == CurrencyType.Tickets)
-        {
-            // If an item has null ticket price, that means you cannot buy it for tickets
-            if (details.priceTickets == null)
-                throw new BadRequestException(0, "Item is no longer for sale");
-            if (details.priceTickets != request.expectedPrice)
-                throw new BadRequestException(0, "Price has changed");
-            // Confirm user has enough tickets
-            if (request.expectedPrice > userBalance.tickets)
-                throw new BadRequestException(0, "Not enough tickets");
-        }
-        else if (request.expectedCurrency == CurrencyType.Robux)
+        if (request.expectedCurrency == CurrencyType.Robux)
         {
             // Note: if price is zero, currency is Robux, and item is for sale, that means the item is free.
             if (details.price != request.expectedPrice)
@@ -177,7 +166,7 @@ public class EconomyControllerV1 : ControllerBase
         }
         else
         {
-            throw new NotImplementedException(); // Unexpected branch
+            throw new BadRequestException(0, "Tickets are not supported");
         }
         // Confirm seller matches
         if (details.creatorTargetId != request.expectedSellerId)

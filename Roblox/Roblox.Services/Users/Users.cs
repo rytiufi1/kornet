@@ -1646,46 +1646,28 @@ public class UsersService : ServiceBase, IService
             // check balance
             using var ec = ServiceProvider.GetOrCreate<EconomyService>(this);
             var buyerBalance = await ec.GetUserBalance(buyerUserId);
-            var balanceInteger = currency == CurrencyType.Robux ? buyerBalance.robux : buyerBalance.tickets;
-            var priceInteger = currency == CurrencyType.Robux ? details.price : details.priceTickets;
+            var balanceInteger = buyerBalance.robux;
+            var priceInteger = details.price;
             if (balanceInteger == priceInteger || priceInteger / 2 > balanceInteger)
                 return PurchaseAbuseFailureReason.UsersRelatedAndPriceIsEqualToBalance;
             // check transactions for seller
             var sellerEarnings = await GetTotalCurrencyExchangedWithInvitedUsers(sellerId, TimeSpan.FromDays(1));
             // we do not want total transactions to exceed the value if completed
-            const int maxTicketsPerDay = 600;
             const int maxRobuxPerDay = 60;
             // check current totals before checking add total - this is so people can't do both tickets AND robux
-            if (sellerEarnings.robux > maxRobuxPerDay || sellerEarnings.tickets > maxTicketsPerDay)
+            if (sellerEarnings.robux > maxRobuxPerDay)
                 return PurchaseAbuseFailureReason.UsersRelatedAndTooMuchTransacted;
             // check half as well (roughly 30 robux + 300 tickets would equal 60 robux, hitting the max)
-            if (sellerEarnings.robux > maxRobuxPerDay/2 && sellerEarnings.tickets > maxTicketsPerDay/2)
-                return PurchaseAbuseFailureReason.UsersRelatedAndTooMuchTransacted;
+            // tickets removed gngy
             
-            if (currency == CurrencyType.Robux)
-            {
-                if (sellerEarnings.robux + details.price > maxRobuxPerDay)
-                    return PurchaseAbuseFailureReason.UsersRelatedAndTooMuchTransactedIfCompleted;
-            }
-            else
-            {
-                if (sellerEarnings.tickets + details.priceTickets > maxTicketsPerDay)
-                    return PurchaseAbuseFailureReason.UsersRelatedAndTooMuchTransactedIfCompleted;
-            }
+            if (sellerEarnings.robux + details.price > maxRobuxPerDay)
+                return PurchaseAbuseFailureReason.UsersRelatedAndTooMuchTransactedIfCompleted;
             // if seller and invite root are not the same, check the invite parent too
             if (buyerInvite != null && sellerId != buyerInvite.authorId)
             {
                 sellerEarnings = await GetTotalCurrencyExchangedWithInvitedUsers(buyerInvite.authorId, TimeSpan.FromDays(1));
-                if (currency == CurrencyType.Robux)
-                {
-                    if (sellerEarnings.robux + details.price > 60)
-                        return PurchaseAbuseFailureReason.UsersRelatedAndTooMuchTransactedIfCompleted;
-                }
-                else
-                {
-                    if (sellerEarnings.tickets + details.priceTickets > 1000)
-                        return PurchaseAbuseFailureReason.UsersRelatedAndTooMuchTransactedIfCompleted;
-                }
+                if (sellerEarnings.robux + details.price > 60)
+                    return PurchaseAbuseFailureReason.UsersRelatedAndTooMuchTransactedIfCompleted;
             }
         }
         // when purchasing a limited item, check if invited users already bought it 2+ times - could be a sign of hoarding

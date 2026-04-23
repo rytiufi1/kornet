@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { createUseStyles } from "react-jss";
 import AuthenticationStore from "../../../stores/authentication";
 import ActionButton from "../../actionButton";
-import Tickets from "../../tickets";
 import CatalogDetailsPage from "../stores/catalogDetailsPage";
 import CatalogDetailsPageModal from "../stores/catalogDetailsPageModal";
 import BuyItemModal from "./buyItemModal";
@@ -111,28 +110,9 @@ const OwnedCount = props => {
   </p>
 }
 
-const useTicketPriceStyles = createUseStyles({
-  ticketPrice: {
-    width: '100%',
-    height: '23px',
-    fontSize: '20px',
-  },
-});
-
-const PriceTickets = props => {
-  const s = useTicketPriceStyles();
-  const store = CatalogDetailsPage.useContainer();
-
-  return <div className={s.ticketPrice}>
-    <span>Price: </span><Tickets hideIcon={true}>{store.details.priceTickets}</Tickets>
-  </div>
-}
-
 const BuyAction = props => {
   const s = useBuyButtonStyles();
-  const currency = props.currency; // 1 = Robux, 2 = Tickets
   const store = CatalogDetailsPage.useContainer();
-  const authenticationStore = AuthenticationStore.useContainer();
   const modalStore = CatalogDetailsPageModal.useContainer();
   const productInfo = store.getPurchaseDetails();
   const auth = AuthenticationStore.useContainer();
@@ -150,10 +130,6 @@ const BuyAction = props => {
   const actionBuyText = (() => {
     if (isFree && !isResaleItem)
       return 'Get';
-
-    if (currency === 2) {
-      return 'Buy with Tx';
-    }
     return 'Buy';
   })();
 
@@ -166,14 +142,13 @@ const BuyAction = props => {
   return <div className="d-flex justify-content-between align-items-center w-100">
     <div className={s.priceText}>
       {showPriceText && productInfo && (
-        currency === 1 ? <Robux hideIcon={false}>{isFree ? 'Free' : productInfo.price}</Robux> :
-          <PriceTickets />
+        <Robux hideIcon={false}>{isFree ? 'Free' : productInfo.price}</Robux>
       )}
     </div>
     <div style={{ width: '200px' }}>
       <ActionButton
         onClick={(e) => {
-          modalStore.openPurchaseModal(store.getPurchaseDetails(), auth.robux, auth.tix, currency);
+          modalStore.openPurchaseModal(store.getPurchaseDetails(), auth.robux);
         }}
         label={actionBuyText}
         disabled={isDisabled}
@@ -213,15 +188,9 @@ const BuyButton = props => {
     if (isResellAsset) return true;
     return store.details.price !== null;
   })();
-  const showBuyTicketsButton = store.details.priceTickets !== null && !isResellAsset;
 
   return <div className="w-100">
-    {showBuyButton && <BuyAction currency={1} />}
-    {showBuyTicketsButton && (
-      <div className="mt-2">
-        <BuyAction currency={2} />
-      </div>
-    )}
+    {showBuyButton && <BuyAction />}
   </div>
 }
 

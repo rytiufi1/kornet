@@ -183,7 +183,7 @@ const LoggedInArea = () => {
   const authStore = AuthenticationStore.useContainer();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  if (authStore.robux === null || authStore.tix === null) return null;
+  if (authStore.robux === null) return null;
 
   return (
     <div className={s.linkContainerCol}>
