@@ -1016,7 +1016,7 @@ public class WebController : ControllerBase
 					stream,
 					request.assetType,
 					Genre.All,
-					ModerationStatus.ReviewApproved);
+					ModerationStatus.AwaitingApproval);
 
 				await services.users.CreateUserAsset(userSession.userId, asset.assetId);
 				return asset;
