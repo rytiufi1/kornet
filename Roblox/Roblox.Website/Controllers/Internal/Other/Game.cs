@@ -78,7 +78,7 @@ namespace Roblox.Website.Controllers
 				}
 			}
 
-			var exePath = Path.Combine(Directory.GetCurrentDirectory(), "Player2014", "RobloxPlayerBeta.exe");
+			var exePath = @"C:\Users\Administrator\Downloads\kornet\Player2014\RobloxPlayerBeta.exe";
 			if (!System.IO.File.Exists(exePath))
 				throw new RobloxException(500, 0, "Player2014 missing");
 
