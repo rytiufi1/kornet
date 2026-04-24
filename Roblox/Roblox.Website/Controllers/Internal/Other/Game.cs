@@ -381,7 +381,7 @@ namespace Roblox.Website.Controllers
 				var TicketQ = Request.Query["ticket"].FirstOrDefault();
 				var Ticket = Uri.EscapeDataString(TicketQ);
 				var joinScriptUrl = Year == "2014"
-					? $"{Configuration.BaseUrl}/game/join2014?placeId={placeId}&port={targetPort}&ip={Uri.EscapeDataString(string.IsNullOrWhiteSpace(Configuration.GSIPAddress) ? \"127.0.0.1\" : Configuration.GSIPAddress)}"
+					? $"{Configuration.BaseUrl}/game/join2014?placeId={placeId}&port={targetPort}&ip={Uri.EscapeDataString(string.IsNullOrWhiteSpace(Configuration.GSIPAddress) ? "127.0.0.1" : Configuration.GSIPAddress)}"
 					: $"{Configuration.BaseUrl}/game/join.ashx?placeid={placeId}&ticket={Ticket}&jobId={targetJobId}";
 				
 				return new
