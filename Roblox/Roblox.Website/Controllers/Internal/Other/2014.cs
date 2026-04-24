@@ -11,6 +11,7 @@ using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Roblox.Exceptions;
 using Roblox.Logging;
 using Roblox.Models.Users;
@@ -25,7 +26,6 @@ using Roblox.Dto.Games;
 using Roblox.Models.GameServer;
 using Roblox.Dto.Assets;
 using Roblox.Models.Assets;
-using Roblox.Services;
 
 namespace Roblox.Website.Controllers 
 {
@@ -33,11 +33,124 @@ namespace Roblox.Website.Controllers
     [MVC.Route("/")]
     public class Game2014Testing : ControllerBase 
     {	
+		private bool RequireAuthorizedIp()
+		{
+			var ip = GetRequesterIpRaw(HttpContext);
+			if (!GameServer2014Comm.IsAuthorizedReportingIp(ip))
+			{
+				Response.StatusCode = 403;
+				return false;
+			}
+
+			return true;
+		}
+
+		private static async Task<string> ReadBodyAsync()
+		{
+			Request.EnableBuffering();
+			using var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+			var body = await reader.ReadToEndAsync();
+			Request.Body.Position = 0;
+			return body;
+		}
+
+		private static JObject? ParsePayloadRoot(string body)
+		{
+			if (string.IsNullOrWhiteSpace(body))
+				return null;
+			var tok = JToken.Parse(body);
+			if (tok is JArray arr && arr.Count > 0)
+				return arr[0] as JObject;
+			return tok as JObject;
+		}
+
+		private static bool TryValidateHostBody(JObject? root, out GameServer2014Comm.HostSession? hostSession)
+		{
+			hostSession = null;
+			if (root == null)
+				return false;
+			var jobId = root["JobId"]?.ToString();
+			var auth = root["AuthToken"]?.ToString();
+			if (!GameServer2014Comm.TryGetAuthorizedHostSession(jobId, auth, out var session) || session == null)
+				return false;
+			var bodyPlace = root["PlaceId"]?.Value<long?>();
+			if (bodyPlace.HasValue && bodyPlace.Value != session.PlaceId)
+				return false;
+			hostSession = session;
+			return true;
+		}
+
+		[HttpPostBypass("internal/gameserver/reportplayers")]
+		public async Task<IActionResult> ReportPlayers2014()
+		{
+			if (!RequireAuthorizedIp())
+				return Content("{}", "application/json");
+
+			var body = await ReadBodyAsync();
+			var root = ParsePayloadRoot(body);
+			if (!TryValidateHostBody(root, out _))
+				return Content("{\"bad\":[]}", "application/json");
+
+			return Content("{\"bad\":[]}", "application/json");
+		}
+
+		[HttpPostBypass("internal/gameserver/reportstats")]
+		public async Task<IActionResult> ReportStats2014()
+		{
+			if (!RequireAuthorizedIp())
+				return Ok();
+
+			var body = await ReadBodyAsync();
+			var root = ParsePayloadRoot(body);
+			if (!TryValidateHostBody(root, out _))
+				return Ok();
+
+			return Ok();
+		}
+
+		[HttpPostBypass("internal/gameserver/reportshutdown")]
+		public async Task<IActionResult> ReportShutdown2014()
+		{
+			if (!RequireAuthorizedIp())
+				return Ok();
+
+			var body = await ReadBodyAsync();
+			var root = ParsePayloadRoot(body);
+			if (!TryValidateHostBody(root, out _))
+				return Ok();
+
+			return Ok();
+		}
+
+		[HttpPostBypass("internal/gameserver/verifyplayer")]
+		public async Task<IActionResult> VerifyPlayer2014()
+		{
+			if (!RequireAuthorizedIp())
+				return Content("{\"authenticated\":false}", "application/json");
+
+			var body = await ReadBodyAsync();
+			var root = ParsePayloadRoot(body);
+			if (!TryValidateHostBody(root, out _))
+				return Content("{\"authenticated\":false}", "application/json");
+
+			var userId = root!["UserId"]?.Value<long?>() ?? 0;
+			var ticket = root["VerificationTicket"]?.ToString();
+
+			var ok = GameServer2014Comm.TryVerifyTicket(ticket, userId);
+			return Content(ok ? "{\"authenticated\":true}" : "{\"authenticated\":false}", "application/json");
+		}
+
 		[HttpGetBypass("/game/host2014")]
 		public async Task<MVC.IActionResult> Host2014()
 		{
 			try
 			{
+				var accessKey = Request.Headers.ContainsKey("accesskey") ? Request.Headers["accesskey"].ToString() : null;
+				if (string.IsNullOrWhiteSpace(accessKey))
+					accessKey = Request.Query["accesskey"].FirstOrDefault();
+				if (accessKey != Configuration.RccAuthorization)
+					return StatusCode(403, "Forbidden");
+
 				var port = Request.Query["port"].FirstOrDefault();
 				var PlaceID = Request.Query["placeId"].FirstOrDefault();
 				
@@ -50,167 +163,49 @@ namespace Roblox.Website.Controllers
 				{
 					return StatusCode(400, "Valid placeId required");
 				}
-				
-/* 				var PlaceDetails = await services.assets.GetAssetCatalogInfo(placeId);
-				if (PlaceDetails == null || PlaceDetails.assetType != Roblox.Models.Assets.Type.Place)
-				{
+
+				var placeDetails = await services.assets.GetAssetCatalogInfo(placeId);
+				if (placeDetails == null || placeDetails.assetType != Type.Place)
 					return StatusCode(404, "Place not found");
-				} */
 
-				var Script = $@"-- Start Game Script Arguments
+				long universeId = 0;
+				try
+				{
+					universeId = await services.games.GetUniverseId(placeId);
+				}
+				catch
+				{
+				}
 
-------------------- UTILITY FUNCTIONS --------------------------
+				if (!int.TryParse(port, out var networkPort))
+					return StatusCode(400, "Port must be a number");
 
-local cdnSuccess = 0
-local cdnFailure = 0
+				var session = GameServer2014Comm.CreateHostSession(
+					placeId,
+					universeId,
+					placeDetails.creatorTargetId,
+					(int)placeDetails.creatorType,
+					networkPort,
+					TimeSpan.FromHours(8),
+					TimeSpan.FromMinutes(3));
 
-function waitForChild(parent, childName)
-	while true do
-		local child = parent:findFirstChild(childName)
-		if child then
-			return child
-		end
-		parent.ChildAdded:wait()
-	end
-end
+				var luaPath = Path.Combine(AppContext.BaseDirectory, "Files", "2014Gameserver.lua");
+				if (!System.IO.File.Exists(luaPath))
+					luaPath = Path.Combine(Directory.GetCurrentDirectory(), "Files", "2014Gameserver.lua");
+				if (!System.IO.File.Exists(luaPath))
+					return StatusCode(500, "2014 server script template missing");
 
--- returns the player object that killed this humanoid
--- returns nil if the killer is no longer in the game
-function getKillerOfHumanoidIfStillInGame(humanoid)
+				var template = await System.IO.File.ReadAllTextAsync(luaPath);
+				var Script = template
+					.Replace("{PlaceId}", placeId.ToString())
+					.Replace("{NetworkPort}", networkPort.ToString())
+					.Replace("{CreatorId}", placeDetails.creatorTargetId.ToString())
+					.Replace("{CreatorType}", ((int)placeDetails.creatorType).ToString())
+					.Replace("{TempPlaceAccessKey}", session.TempPlaceAccessKey)
+					.Replace("{AuthToken}", session.AuthToken)
+					.Replace("{JobId}", session.JobId)
+					.Replace("{UniverseId}", universeId.ToString());
 
-	-- check for kill tag on humanoid - may be more than one - todo: deal with this
-	local tag = humanoid:findFirstChild(""creator"")
-
-	-- find player with name on tag
-	if tag then
-		local killer = tag.Value
-		if killer.Parent then -- killer still in game
-			return killer
-		end
-	end
-
-	return nil
-end
------------------------------------END UTILITY FUNCTIONS -------------------------
-
------------------------------------""CUSTOM"" SHARED CODE----------------------------------
-
-pcall(function() settings().Network.UseInstancePacketCache = true end)
-pcall(function() settings().Network.UsePhysicsPacketCache = true end)
-pcall(function() settings()[""Task Scheduler""].PriorityMethod = Enum.PriorityMethod.AccumulatedError end)
-
-
-settings().Network.PhysicsSend = Enum.PhysicsSendMethod.TopNErrors
-settings().Network.ExperimentalPhysicsEnabled = true
-settings().Network.WaitingForCharacterLogRate = 100
-pcall(function() settings().Diagnostics:LegacyScriptMode() end)
-
------------------------------------START GAME SHARED SCRIPT------------------------------
-
--- establish this peer as the Server
-local ns = game:GetService(""NetworkServer"")
-
-local badgeUrlFlagExists, badgeUrlFlagValue = pcall(function () return settings():GetFFlag(""NewBadgeServiceUrlEnabled"") end)
-local newBadgeUrlEnabled = badgeUrlFlagExists and badgeUrlFlagValue
-
-local url = ""{Configuration.BaseUrl}""
--- make this not use this in the future very secure
-local apiKey = ""AckGU""
-local placeId = ""{PlaceID}""
-local access = ""apiKey="" .. apiKey
-
-pcall(function() game:GetService(""Players""):SetAbuseReportUrl(url .. ""/AbuseReport/InGameChatHandler.ashx"") end)
-pcall(function() game:GetService(""ScriptInformationProvider""):SetAssetUrl(url .. ""/Asset/"") end)
-pcall(function() game:GetService(""ContentProvider""):SetBaseUrl(url .. ""/"") end)
-pcall(function() game:GetService(""Players""):SetChatFilterUrl(url .. ""/Game/ChatFilter.ashx"") end)
-
-game:GetService(""BadgeService""):SetPlaceId({placeId})
-game:SetPlaceId({placeId})
-
-if newBadgeUrlEnabled then
-	game:GetService(""BadgeService""):SetAwardBadgeUrl(url .. ""/assets/award-badge?userId=%d&badgeId=%d&placeId=%d&"" .. access)
-end
-
-if access~=nil then
-	if not newBadgeUrlEnabled then
-		game:GetService(""BadgeService""):SetAwardBadgeUrl(url .. ""/Game/Badge/AwardBadge.ashx?UserID=%d&BadgeID=%d&PlaceID=%d&"" .. access)
-	end
-
-	game:GetService(""BadgeService""):SetHasBadgeUrl(url .. ""/Game/Badge/HasBadge.ashx?UserID=%d&BadgeID=%d&"" .. access)
-	game:GetService(""BadgeService""):SetIsBadgeDisabledUrl(url .. ""/Game/Badge/IsBadgeDisabled.ashx?BadgeID=%d&PlaceID=%d&"" .. access)
-
-	game:GetService(""FriendService""):SetMakeFriendUrl(url .. ""/Game/CreateFriend?firstUserId=%d&secondUserId=%d"")
-	game:GetService(""FriendService""):SetBreakFriendUrl(url .. ""/Game/BreakFriend?firstUserId=%d&secondUserId=%d"")
-	game:GetService(""FriendService""):SetGetFriendsUrl(url .. ""/Game/AreFriends?userId=%d"")
-end
-
-game:GetService(""BadgeService""):SetIsBadgeLegalUrl("""")
-game:GetService(""InsertService""):SetBaseSetsUrl(url .. ""/Game/Tools/InsertAsset.ashx?nsets=10&type=base"")
-game:GetService(""InsertService""):SetUserSetsUrl(url .. ""/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d"")
-game:GetService(""InsertService""):SetCollectionUrl(url .. ""/Game/Tools/InsertAsset.ashx?sid=%d"")
-game:GetService(""InsertService""):SetAssetUrl(url .. ""/Asset/?id=%d"")
-game:GetService(""InsertService""):SetAssetVersionUrl(url .. ""/Asset/?assetversionid=%d"")
-
-pcall(function() loadfile(url .. ""/Game/LoadPlaceInfo.ashx?PlaceId="" .. {placeId})() end)
-	
-pcall(function() 
-	if access then
-		loadfile(url .. ""/Game/PlaceSpecificScript.ashx?PlaceId="" .. {placeId} .. ""&"" .. access)()
-	end
-end)
-
-pcall(function() game:GetService(""NetworkServer""):SetIsPlayerAuthenticationRequired(true) end)
-settings().Diagnostics.LuaRamLimit = 0
-
--- listen for the death of a Player
-function createDeathMonitor(player)
-	-- we don't need to clean up old monitors or connections since the Character will be destroyed soon
-	if player.Character then
-		local humanoid = waitForChild(player.Character, ""Humanoid"")
-		humanoid.Died:connect(
-			function ()
-				-- Ahh
-			end
-		)
-	end
-end
-
--- listen to all Players' Characters
-game:GetService(""Players"").ChildAdded:connect(
-	function (player)
-		createDeathMonitor(player)
-		player.Changed:connect(
-			function (property)
-				if property==""Character"" then
-					createDeathMonitor(player)
-				end
-			end
-		)
-	end
-)
-
-game:GetService(""Players"").PlayerAdded:connect(function(player)
-	print(""Player "" .. player.userId .. "" added"")
-	if url and access and {placeId} and player and player.userId then
-		game:HttpGet(url .. ""/Game/ClientPresence.ashx?action=connect&"" .. access .. ""&PlaceID="" .. {placeId} .. ""&UserID="" .. player.userId)
-		game:HttpPost(url .. ""/Game/PlaceVisit.ashx?UserID="" .. player.userId .. ""&AssociatedPlaceID="" .. {placeId} .. ""&"" .. access, """")
-	end
-end)
-
-game:GetService(""Players"").PlayerRemoving:connect(function(player)
-	print(""Player "" .. player.userId .. "" leaving"")
-	if url and access and {placeId} and player and player.userId then
-		game:HttpGet(url .. ""/Game/ClientPresence.ashx?action=disconnect&"" .. access .. ""&PlaceID="" .. {placeId} .. ""&UserID="" .. player.userId)
-	end
-end)
-
--- Now start the connection
-game:Load(url .. ""/Asset/?id="" .. placeId .. ""&apiKey="" .. apiKey)
-ns:Start({port}, 1/60)  
-pcall(function() game.LocalSaveEnabled = true end)
-
--- StartGame --
-Game:GetService(""RunService""):Run()";
 
 				var RSA = services.rsaSign;
 				var signature = RSA.SignScript(Script, false);
@@ -254,6 +249,10 @@ game:SetMessage(""Hosting!"")";
 			{
 				var port = Request.Query["port"].FirstOrDefault();
 				var PlaceID = Request.Query["placeId"].FirstOrDefault();
+				var ip = Request.Query["ip"].FirstOrDefault();
+				if (string.IsNullOrWhiteSpace(ip))
+					ip = "127.0.0.1";
+				ip = ip.Trim().Replace("\"", "");
 				
 				if (string.IsNullOrEmpty(port))
 				{
@@ -463,7 +462,7 @@ local success, err = pcall(function()
 	connectionFailed = client.ConnectionFailed:connect(onConnectionFailed)
 	client.Ticket = """"
 	
-	playerConnectSucces, player = pcall(function() return client:PlayerConnect({placeId}, ""127.0.0.1"", {port}, 0, threadSleepTime) end)
+	playerConnectSucces, player = pcall(function() return client:PlayerConnect({placeId}, ""{ip}"", {port}, 0, threadSleepTime) end)
 
 	player:SetSuperSafeChat(false)
 	pcall(function() player:SetUnder13(false) end)
@@ -494,5 +493,12 @@ pcall(function() game:SetScreenshotInfo("""") end)";
 				return StatusCode(500, "Failed to generate game script");
 			}
 		}
+
+		
+		[HttpGetBypass("/game/player2014/join")]
+		public Task<MVC.IActionResult> Player2014Join() => Join2014();
+
+		[HttpGetBypass("/game/player2014/host")]
+		public Task<MVC.IActionResult> Player2014Host() => Host2014();
 	}
 }	

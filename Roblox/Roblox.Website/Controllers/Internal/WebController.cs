@@ -482,7 +482,7 @@ public class WebController : ControllerBase
     }
 	
 	[HttpGet("game/get-join-script")]
-	public async Task<string> GetJoinScript(long placeId, string? gameId = null)
+	public async Task<string> GetJoinScript(long placeId, string? gameId = null, int? year = null)
 	{
 		FeatureFlags.FeatureCheck(FeatureFlag.GameJoinEnabled);
 		
@@ -503,16 +503,17 @@ public class WebController : ControllerBase
 		string auth = $"{baselink}/Login/Negotiate.ashx";
 		string ticket = Request.Cookies[".ROBLOSECURITY"];
 
-		int? year = await services.games.GetPlaceYear(placeId);
+		int? placeYear = await services.games.GetPlaceYear(placeId);
+		var effectiveYear = year ?? placeYear;
 		
 		string PL = $"{baselink}/game/PlaceLauncher.ashx?placeid={placeId}&ticket={ticket}";
 		if (!string.IsNullOrEmpty(gameId))
 		{
 			PL += $"&gameId={gameId}";
 		}
-		if (year.HasValue)
+		if (effectiveYear.HasValue)
 		{
-			PL += $"&{year.Value}=true";
+			PL += $"&year={effectiveYear.Value}";
 		}
 
 		string args = $"-a \"{auth}\" -j \"{PL}\" -t \"{ticket}\"";

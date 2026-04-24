@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Roblox.Website.Middleware;
+using Roblox.Services;
 using Roblox.Services.App.FeatureFlags;
 using MVC = Microsoft.AspNetCore.Mvc;
 using Type = Roblox.Models.Assets.Type;
@@ -41,8 +42,16 @@ namespace Roblox.Website.Controllers
 		}
 
 		[HttpGetBypass("Asset/CharacterFetch.ashx")]
-		public async Task<string> CharacterFetch(long userId, long placeId)
+		public async Task<string> CharacterFetch(long userId, long placeId, string? t = null, string? legacy = null)
 		{
+			if (!string.IsNullOrWhiteSpace(t))
+				GameServer2014Comm.RegisterVerificationTicket(t, userId, TimeSpan.FromMinutes(30));
+
+			if (!string.IsNullOrWhiteSpace(legacy))
+			{
+				return $"{Configuration.BaseUrl}/Asset/BodyColors.ashx?userId={userId}";
+			}
+
 			var assets = (await services.avatar.GetWornAssets(userId)).ToList();
 			
 			// filter out gears if the FFlag is disabled

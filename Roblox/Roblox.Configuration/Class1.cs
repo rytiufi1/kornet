@@ -43,6 +43,7 @@ public static class Configuration
     public static IEnumerable<GameServerConfigEntry> GameServerIpAddresses { get; set; }
 	public static IEnumerable<int> AllowedNetworkPorts { get; set; } = Array.Empty<int>();
     public static string GameServerAuthorization { get; set; }
+    public static string GameServer2014AuthorizedReportingIps { get; set; } = "45.90.98.113";
     public static string RobloxAppPrefix { get; set; } = "kornetclient://";
     public static string AssetValidationServiceUrl { get; set; }
     public static string AssetValidationServiceAuthorization { get; set; }

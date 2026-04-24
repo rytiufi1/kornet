@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -33,6 +35,81 @@ namespace Roblox.Website.Controllers
     [MVC.Route("/")]
     public class Game : ControllerBase 
     {	
+		private sealed class Player2014HostProc
+		{
+			public long PlaceId { get; init; }
+			public int Port { get; init; }
+			public string JobId { get; init; } = "";
+			public Process Process { get; init; } = null!;
+			public DateTimeOffset StartedAt { get; init; }
+		}
+
+		private static readonly ConcurrentDictionary<long, Player2014HostProc> Player2014HostsByPlace = new();
+
+		private static bool IsPortInUse(int port)
+		{
+			try
+			{
+				using var client = new TcpClient();
+				var result = client.BeginConnect("127.0.0.1", port, null, null);
+				var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(120));
+				if (!success)
+					return false;
+				client.EndConnect(result);
+				return true;
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
+		private Player2014HostProc EnsurePlayer2014Hosting(long placeId, int port, string jobId)
+		{
+			if (Player2014HostsByPlace.TryGetValue(placeId, out var existing))
+			{
+				try
+				{
+					if (!existing.Process.HasExited && existing.Port == port)
+						return existing;
+				}
+				catch
+				{
+				}
+			}
+
+			var exePath = Path.Combine(Directory.GetCurrentDirectory(), "Player2014", "RobloxPlayerBeta.exe");
+			if (!System.IO.File.Exists(exePath))
+				throw new RobloxException(500, 0, "Player2014 missing");
+
+			var hostUrl = $"{Configuration.BaseUrl}/game/player2014/host?placeId={placeId}&port={port}&accesskey={Uri.EscapeDataString(Configuration.RccAuthorization ?? "")}";
+			var authUrl = $"{Configuration.BaseUrl}/Login/Negotiate.ashx";
+
+			var psi = new ProcessStartInfo
+			{
+				FileName = exePath,
+				Arguments = $"-t None -j \"{hostUrl}\" -a \"{authUrl}\"",
+				UseShellExecute = false,
+				CreateNoWindow = true,
+				WorkingDirectory = Path.GetDirectoryName(exePath) ?? Directory.GetCurrentDirectory(),
+			};
+
+			var proc = Process.Start(psi);
+			if (proc == null)
+				throw new RobloxException(500, 0, "Failed to start Player2014");
+
+			var info = new Player2014HostProc
+			{
+				PlaceId = placeId,
+				Port = port,
+				JobId = jobId,
+				Process = proc,
+				StartedAt = DateTimeOffset.UtcNow,
+			};
+			Player2014HostsByPlace[placeId] = info;
+			return info;
+		}
+
 		private bool IsRcc()
         {
             var rccAccessKey = Request.Headers.ContainsKey("accesskey") ? Request.Headers["accesskey"].ToString() : null;
@@ -40,7 +117,6 @@ namespace Roblox.Website.Controllers
             return isRcc;
         }	
 		
-		// Idk the actual endpoint names
 		[HttpPostBypass("game/badge/award.ashx")]
 		[HttpPostBypass("assets/award-badge")]
 		public async Task<string> AwardBadge(
@@ -86,7 +162,6 @@ namespace Roblox.Website.Controllers
 			var hasBadge = await Assets.DoesUserOwnAsset(userId, badgeId);
 			if (!hasBadge)
 			{
-				// make it say awarded on frontend
 				var Awarded = await Users.GiveUserGameBadge(userId, badgeId);
 				if (Awarded)
 				{
@@ -182,10 +257,10 @@ namespace Roblox.Website.Controllers
 
 		[HttpGetBypass("/game/PlaceLauncher.ashx")]
 		[HttpPostBypass("/game/PlaceLauncher.ashx")]
-		public async Task<dynamic> PlaceLauncher(long placeId, string ticket, string? gameId = null)
+		public async Task<dynamic> PlaceLauncher(long placeId, string ticket, string? gameId = null, int? year = null)
 		{	
 			var PlaceYear = await services.games.GetPlaceYear(placeId);
-			string Year = PlaceYear?.ToString() ?? "2016";
+			string Year = (year ?? PlaceYear)?.ToString() ?? "2016";
 
 			if (!await services.games.IsPlayable(placeId))
 			{
@@ -257,6 +332,7 @@ namespace Roblox.Website.Controllers
 
 			string targetJobId;
 			JoinStatus targetStatus;
+			int targetPort = 0;
 
 			if (!string.IsNullOrEmpty(gameId))
 			{
@@ -266,6 +342,7 @@ namespace Roblox.Website.Controllers
 				{
 					targetJobId = gameId;
 					targetStatus = JoinStatus.Joining;
+					targetPort = await services.gameServer.GetServerPortFromDatabase(targetJobId);
 				}
 				else
 				{
@@ -279,9 +356,22 @@ namespace Roblox.Website.Controllers
 			}
 			else
 			{
-				var Result = await services.gameServer.GetServerForPlace(placeId, Year);
-				targetJobId = Result.job;
-				targetStatus = Result.status;
+				if (Year == "2014")
+				{
+					targetJobId = Guid.NewGuid().ToString("N");
+					targetStatus = JoinStatus.Joining;
+					targetPort = 53640 + (int)(placeId % 1000);
+					while (IsPortInUse(targetPort))
+						targetPort++;
+					_ = EnsurePlayer2014Hosting(placeId, targetPort, targetJobId);
+				}
+				else
+				{
+					var Result = await services.gameServer.GetServerForPlace(placeId, Year);
+					targetJobId = Result.job;
+					targetStatus = Result.status;
+					targetPort = await services.gameServer.GetServerPortFromDatabase(targetJobId);
+				}
 			}
 				
 			if (targetStatus == JoinStatus.Joining)
@@ -290,7 +380,9 @@ namespace Roblox.Website.Controllers
 
 				var TicketQ = Request.Query["ticket"].FirstOrDefault();
 				var Ticket = Uri.EscapeDataString(TicketQ);
-				var joinScriptUrl = $"{Configuration.BaseUrl}/game/join.ashx?placeid={placeId}&ticket={Ticket}&jobId={targetJobId}";
+				var joinScriptUrl = Year == "2014"
+					? $"{Configuration.BaseUrl}/game/join2014?placeId={placeId}&port={targetPort}&ip={Uri.EscapeDataString(string.IsNullOrWhiteSpace(Configuration.GSIPAddress) ? \"127.0.0.1\" : Configuration.GSIPAddress)}"
+					: $"{Configuration.BaseUrl}/game/join.ashx?placeid={placeId}&ticket={Ticket}&jobId={targetJobId}";
 				
 				return new
 				{
@@ -311,8 +403,6 @@ namespace Roblox.Website.Controllers
 					message = "Waiting for server"
 				};
 			}
-			
-			//return Result;
 			return new
 			{
 				jobId = (string?)null,
@@ -320,24 +410,6 @@ namespace Roblox.Website.Controllers
 				message = "Waiting for server",
 			};
 		}
-				
-		// public async Task<IEnumerable<ProductReceipt>?> GetPendingProductReceipts(long userId, long universeId)
-		// {
-		// 	return await db.QueryAsync<ProductReceipt>(
-		// 		@"SELECT pr.id, pr.price, pr.processed, 
-		// 		pr.created_at as createdAt,
-		// 		pr.processed_at as processedAt,
-		// 		pr.user_id as userId,
-		// 		pr.product_id as productId
-		// 		FROM product_receipt AS pr
-		// 		LEFT JOIN developer_product dp ON dp.id = pr.product_id
-		// 		WHERE pr.processed = FALSE AND dp.universe_id = :universeId AND pr.user_id = :userId",
-		// 		new
-		// 		{
-		// 			userId,
-		// 			universeId
-		// 		});
-		// }
 
 		[HttpGetBypass("/game/Join.ashx")]
 		[HttpPostBypass("/game/Join.ashx")]
@@ -348,8 +420,11 @@ namespace Roblox.Website.Controllers
 				var placeId = long.Parse(Request.Query["placeid"].FirstOrDefault() ?? Request.Query["placeId"].FirstOrDefault());
 				var ticket = Request.Query["ticket"].FirstOrDefault();
 				var JobId = Request.Query["jobId"].FirstOrDefault();
+				var yearOverrideRaw = Request.Query["year"].FirstOrDefault();
 				var PlaceYear = await services.games.GetPlaceYear(placeId);
-				string Year = PlaceYear?.ToString() ?? "2016";
+				if (!int.TryParse(yearOverrideRaw, out var yearOverride))
+					yearOverride = 0;
+				string Year = (yearOverride > 0 ? yearOverride : PlaceYear)?.ToString() ?? "2016";
 				bool is2020 = Year == "2020" || Year == "2021";
 
 				long userId;
@@ -392,7 +467,6 @@ namespace Roblox.Website.Controllers
 				var PlayerGS = await services.gameServer.GetPlayersCurrentServer(userId);
 				if (PlayerGS != null && PlayerGS.assetId != placeId)
 				{
-					// Fix this
 					await services.gameServer.EvictPlayer(userId, PlayerGS.assetId, Year);
 					await Task.Delay(300);
 				}
@@ -462,17 +536,10 @@ namespace Roblox.Website.Controllers
 		
 		private void CheckServerAuth(string auth)
 		{
-			// TODO: make this configurable!!!!!!!
 		    string expected = Roblox.Configuration.GameServerAuthorization;
 			
-			/* Console.WriteLine($"[INFO] got auth: {auth}");
-
-			Console.WriteLine($"[INFO] expected auth: {expected}");
-			*/
-
 			if (auth != expected)
 			{
-				//string url = HttpContext.Request.GetEncodedUrl();
 				string ip = GetRequesterIpRaw(HttpContext);
 
 				Roblox.Metrics.GameMetrics.ReportRccAuthorizationFailure("http://kornet.lat/gs/hi", auth, ip);
@@ -481,15 +548,11 @@ namespace Roblox.Website.Controllers
 
 				throw new BadRequestException();
 			}
-
-			//Console.WriteLine($"[INFO] auth success");
 		}
 
         [HttpPostBypass("/gs/activity")]
         public async Task<dynamic> GetGsActivity([Required, MVC.FromBody] ReportActivity request)
         {
-            //Console.WriteLine(request.authorization);
-
             CheckServerAuth(request.authorization);
             var Result = await services.gameServer.GetLastServerPing(request.serverId);
             return new
@@ -601,54 +664,6 @@ namespace Roblox.Website.Controllers
 			}
 		}
 		
-		/* 		// MAKE THE JOIN SCRIPTS NOT RUN OFF OF A WEBSERVER IN THE FUTURE
-		// this is for the PHP place launcher so it gets the correct data
-		[HttpGetBypass("game/get-data")]
-		public async Task<dynamic> GetGameData([Required] long placeId, string? ticket = null)
-		{
-			try
-			{
-				long userId;
-				
-				if (!string.IsNullOrEmpty(ticket))
-				{
-					try 
-					{
-						// Please rewrite this part, this was when I barely knew the codebase
-						var ticketData = services.gameServer.DecodeTicket(ticket, null);
-						userId = ticketData.userId;
-						
-						if (userId <= 0)
-						{
-							throw new RobloxException(401, 0, "Invalid user ID");
-						}
-
-						var ticketUserInfo = await services.users.GetUserById(userId);
-						if (ticketUserInfo == null)
-						{
-							throw new RobloxException(404, 0, "User not found");
-						}
-					}
-					catch (Exception decodeEx)
-					{
-						Console.WriteLine($"bad ticket: {decodeEx.Message}");
-						throw new RobloxException(401, 0, "Invalid ticket");
-					}
-				}
-				else if (userSession != null)
-				{
-					userId = userSession.userId;
-				}
-				else
-				{
-					throw new RobloxException(401, 0, "Not authenticated");
-				}
-
-				var userInfo = await services.users.GetUserById(userId);
-				if (userInfo == null)
-				{
-					throw new RobloxException(404, 0, "User not found");
-				}
 
 				int accountAgeDays = (int)(DateTime.UtcNow - userInfo.created).TotalDays;
 
@@ -708,6 +723,6 @@ namespace Roblox.Website.Controllers
 					error = ex.Message
 				};
 			}
-		} */
+		
 	}
 }	

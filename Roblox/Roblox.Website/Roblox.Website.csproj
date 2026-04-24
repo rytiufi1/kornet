@@ -36,4 +36,13 @@
     <_ContentIncludedByDefault Remove="Pages\Admi\Home.cshtml" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Files\2014Gameserver.lua">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Files\2014JoinClient.lua">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -23,7 +23,7 @@ using Roblox.Website.WebsiteModels.Asset;
 using Roblox.Libraries.RobloxApi;
 using Roblox.Libraries.Assets;
 using Roblox.Website.Lib;
-using System.Diagnostics;
+using Roblox.Services;
 
 namespace Roblox.Website.Controllers 
 {
@@ -125,7 +125,7 @@ namespace Roblox.Website.Controllers
         [HttpGetBypass("asset")]
         [HttpPostBypass("v1/asset")]
         [HttpPostBypass("asset")]
-		public async Task<MVC.ActionResult> GetAssetById(long id, [MVC.FromQuery] string? apiKey = null, [MVC.FromQuery(Name = "assetversionid")] long? assetVersionId = null)
+		public async Task<MVC.ActionResult> GetAssetById(long id, [MVC.FromQuery] string? apiKey = null, [MVC.FromQuery] string? access = null, [MVC.FromQuery(Name = "assetversionid")] long? assetVersionId = null)
         {
             if(id == 507766388)
             {
@@ -140,13 +140,22 @@ namespace Roblox.Website.Controllers
                 throw new RobloxException(400, 0, "Asset is invalid or does not exist");
             }
 
-            var ipHash = GetIP(GetRequesterIpRaw(HttpContext));
-            var rateLimitKey = $"RateLimit:GetAssetById:{ipHash}";
-            
-            if (!await services.cooldown.TryIncrementBucketCooldown(rateLimitKey, 60, TimeSpan.FromMinutes(1)))
+            var subjectIdBeforeVersionMap = id;
+            var rawIp = GetRequesterIpRaw(HttpContext);
+            var skipRateLimitFor2014Place = !string.IsNullOrWhiteSpace(access)
+                && GameServer2014Comm.IsAuthorizedReportingIp(rawIp)
+                && GameServer2014Comm.TryValidateTempPlaceAccess(subjectIdBeforeVersionMap, access);
+
+            if (!skipRateLimitFor2014Place)
             {
-                Console.WriteLine($"[ratelimit] rate limit exceeded for IP {ipHash}");
-                throw new RobloxException(429, 0, "Too many requests");
+                var ipHash = GetIP(rawIp);
+                var rateLimitKey = $"RateLimit:GetAssetById:{ipHash}";
+
+                if (!await services.cooldown.TryIncrementBucketCooldown(rateLimitKey, 60, TimeSpan.FromMinutes(1)))
+                {
+                    Console.WriteLine($"[ratelimit] rate limit exceeded for IP {ipHash}");
+                    throw new RobloxException(429, 0, "Too many requests");
+                }
             }
 
 			var CachedRobloxAsset = await GetCachedAsset(id);
@@ -169,6 +178,22 @@ namespace Roblox.Website.Controllers
 
 				var assetContentSecret = await services.assets.GetAssetContent(latestVersionSecret.contentUrl);
 				return base.File(assetContentSecret, "application/binary");
+			}
+
+			if (!string.IsNullOrEmpty(access)
+				&& GameServer2014Comm.IsAuthorizedReportingIp(GetRequesterIpRaw(HttpContext))
+				&& GameServer2014Comm.TryValidateTempPlaceAccess(id, access))
+			{
+				var placeMeta = await services.assets.GetAssetCatalogInfo(id);
+				if (placeMeta == null || placeMeta.assetType != Type.Place)
+					throw new RobloxException(403, 0, "Forbidden");
+
+				var latestVersion2014 = await services.assets.GetLatestAssetVersion(id);
+				if (latestVersion2014?.contentUrl == null)
+					throw new RobloxException(400, 0, "Content URL is null");
+
+				var assetContent2014 = await services.assets.GetAssetContent(latestVersion2014.contentUrl);
+				return base.File(assetContent2014, "application/binary");
 			}
 			
             // TODO: This endpoint needs to be updated to return a URL to the asset, not the asset itself.
