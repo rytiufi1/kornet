@@ -9,11 +9,21 @@ app.get('/', (req, res) => {
     res.send('what are u doing here');
 });
 
-app.get('/*path', (req, res) => {
-    const filesfolder = path.join(__dirname, 'files', req.path);
+app.get('*', (req, res) => {
+    const relativePath = req.path.slice(1);
+    const filesfolder = path.join(__dirname, 'files', relativePath);
+
+    const filesRoot = path.join(__dirname, 'files');
+    if (!filesfolder.startsWith(filesRoot)) {
+        return res.status(403).send('nope');
+    }
+
     if (fs.existsSync(filesfolder)) {
         res.download(filesfolder);
-        console.log(`giving the guy ${filesfolder}`)
+        console.log(`giving the guy ${filesfolder}`);
+    } else {
+        console.log(`couldnt find ${filesfolder}`);
+        res.status(404).send('not found');
     }
 });
 
