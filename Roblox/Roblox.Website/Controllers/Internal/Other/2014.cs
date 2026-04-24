@@ -45,7 +45,7 @@ namespace Roblox.Website.Controllers
 			return true;
 		}
 
-		private static async Task<string> ReadBodyAsync()
+		private async Task<string> ReadBodyAsync()
 		{
 			Request.EnableBuffering();
 			using var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
@@ -165,7 +165,7 @@ namespace Roblox.Website.Controllers
 				}
 
 				var placeDetails = await services.assets.GetAssetCatalogInfo(placeId);
-				if (placeDetails == null || placeDetails.assetType != Type.Place)
+				if (placeDetails == null || placeDetails.assetType != Roblox.Models.Assets.Type.Place)
 					return StatusCode(404, "Place not found");
 
 				long universeId = 0;
@@ -205,7 +205,6 @@ namespace Roblox.Website.Controllers
 					.Replace("{AuthToken}", session.AuthToken)
 					.Replace("{JobId}", session.JobId)
 					.Replace("{UniverseId}", universeId.ToString());
-
 
 				var RSA = services.rsaSign;
 				var signature = RSA.SignScript(Script, false);
@@ -350,11 +349,9 @@ client = game:GetService(""NetworkClient"")
 visit = game:GetService(""Visit"")
 
 function setMessage(message)
-	-- todo: animated ""...""
 	if not false then
 		game:SetMessage(message)
 	else
-		-- hack, good enought for now
 		game:SetMessage(""Teleporting ..."")
 	end
 end
@@ -363,7 +360,6 @@ function showErrorWindow(message, errorType, errorCategory)
 	game:SetMessage(message)
 end
 
--- called when the client connection closes
 function onDisconnection(peer, lostConnection)
 	if lostConnection then
 		showErrorWindow(""You have lost connection"", ""LostConnection"", ""LostConnection"")
@@ -374,7 +370,6 @@ end
 
 function requestCharacter(replicator)
 	
-	-- prepare code for when the Character appears
 	local connection
 	connection = player.Changed:connect(function (property)
 		if property==""Character"" then
@@ -440,12 +435,10 @@ function onConnectionAccepted(url, replicator)
 	end
 end
 
--- called when the client connection fails
 function onConnectionFailed(_, error)
 	showErrorWindow(""Failed to connect to the Game. (ID="" .. error .. "")"", ""ID"" .. error, ""Other"")
 end
 
--- called when the client connection is rejected
 function onConnectionRejected()
 	connectionFailed:disconnect()
 	showErrorWindow(""This game is not available. Please try another"", ""WrongVersion"", ""WrongVersion"")
@@ -494,11 +487,10 @@ pcall(function() game:SetScreenshotInfo("""") end)";
 			}
 		}
 
-		
 		[HttpGetBypass("/game/player2014/join")]
 		public Task<MVC.IActionResult> Player2014Join() => Join2014();
 
 		[HttpGetBypass("/game/player2014/host")]
 		public Task<MVC.IActionResult> Player2014Host() => Host2014();
 	}
-}	
+}
