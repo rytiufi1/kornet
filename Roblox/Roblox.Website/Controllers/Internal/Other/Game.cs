@@ -89,7 +89,7 @@ namespace Roblox.Website.Controllers
 			var psi = new ProcessStartInfo
 			{
 				FileName = exePath,
-				Arguments = $"-a \"{baseUrl}\" -j \"{hostUrl}\" -t 1",
+				Arguments = $"-a \"{BaseUrl}\" -j \"{hostUrl}\" -t 1",
 				UseShellExecute = false,
 				CreateNoWindow = true,
 				WorkingDirectory = Path.GetDirectoryName(exePath) ?? Directory.GetCurrentDirectory(),
