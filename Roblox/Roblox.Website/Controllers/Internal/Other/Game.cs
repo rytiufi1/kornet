@@ -84,11 +84,12 @@ namespace Roblox.Website.Controllers
 
 			var hostUrl = $"{Configuration.BaseUrl}/game/player2014/host?placeId={placeId}&port={port}&accesskey={Uri.EscapeDataString(Configuration.RccAuthorization ?? "")}";
 			var authUrl = $"{Configuration.BaseUrl}/Login/Negotiate.ashx";
+			var BaseUrl = $"http://www.kornet.lat";
 
 			var psi = new ProcessStartInfo
 			{
 				FileName = exePath,
-				Arguments = $"-t None -j \"{hostUrl}\" -a \"{authUrl}\"",
+				Arguments = $"-a \"{baseUrl}\" -j \"{hostUrl}\" -t 1",
 				UseShellExecute = false,
 				CreateNoWindow = true,
 				WorkingDirectory = Path.GetDirectoryName(exePath) ?? Directory.GetCurrentDirectory(),
@@ -381,7 +382,7 @@ namespace Roblox.Website.Controllers
 				var TicketQ = Request.Query["ticket"].FirstOrDefault();
 				var Ticket = Uri.EscapeDataString(TicketQ);
 				var joinScriptUrl = Year == "2014"
-					? $"{Configuration.BaseUrl}/game/join2014?placeId={placeId}&port={targetPort}&ip={Uri.EscapeDataString(string.IsNullOrWhiteSpace(Configuration.GSIPAddress) ? "127.0.0.1" : Configuration.GSIPAddress)}"
+					? $"http://www.kornet.lat/game/join2014?placeId={placeId}&port={targetPort}&ip={Uri.EscapeDataString(string.IsNullOrWhiteSpace(Configuration.GSIPAddress) ? "127.0.0.1" : Configuration.GSIPAddress)}"
 					: $"{Configuration.BaseUrl}/game/join.ashx?placeid={placeId}&ticket={Ticket}&jobId={targetJobId}";
 				
 				return new
