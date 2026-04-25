@@ -27,7 +27,7 @@ const darkmode = async () => {
     contrast: 100,
     sepia: 0
   }, {
-    mode: 1 
+    engine: 1 
   });
 };
 
