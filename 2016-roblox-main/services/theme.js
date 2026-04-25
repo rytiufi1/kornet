@@ -1,5 +1,3 @@
-import * as DarkReader from 'darkreader';
-
 const themeType = {
   obc2016: 'obc2016',
   light: 'light',
@@ -18,9 +16,12 @@ const getTheme = () => {
   return Object.values(themeType).includes(savedTheme) ? savedTheme : themeType.default;
 };
 
-const darkmode = () => {
+const darkmode = async () => {
   if (typeof window === 'undefined') return;
   
+  const DarkReader = await import('darkreader');
+  
+  DarkReader.setFetchMethod(window.fetch);
   DarkReader.enable({
     brightness: 100,
     contrast: 100,
@@ -30,8 +31,9 @@ const darkmode = () => {
   });
 };
 
-const nodarkmode = () => {
+const nodarkmode = async () => {
   if (typeof window === 'undefined') return;
+  const DarkReader = await import('darkreader');
   DarkReader.disable();
 };
 
@@ -58,8 +60,12 @@ const apply = (theme) => {
   }
 };
 
-if (isLocalStorageAvailable && typeof window !== 'undefined') {
-  apply(getTheme());
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'complete') {
+    apply(getTheme());
+  } else {
+    window.addEventListener('load', () => apply(getTheme()));
+  }
 }
 
 export { themeType, getTheme, setTheme };
