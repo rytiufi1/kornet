@@ -208,7 +208,7 @@ namespace Roblox.Website.Controllers
 
 				var RSA = services.rsaSign;
 				var signature = RSA.SignScript(Script, false, true);
-				var result = $"{signature}\r\n{Script}";
+				var result = signature + Script;
 				
 				return Content(result, "text/plain");
 			}
