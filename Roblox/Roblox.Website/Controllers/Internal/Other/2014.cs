@@ -207,7 +207,7 @@ namespace Roblox.Website.Controllers
 					.Replace("{UniverseId}", universeId.ToString());
 
 				var RSA = services.rsaSign;
-				var signature = RSA.SignScript(Script, false);
+				var signature = RSA.SignScript(Script, false, true);
 				var result = $"{signature}\r\n{Script}";
 				
 				return Content(result, "text/plain");
