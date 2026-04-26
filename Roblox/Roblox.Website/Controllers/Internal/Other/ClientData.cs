@@ -357,6 +357,17 @@ public async Task<IActionResult> GetStudioBehaviorConfig()
     var content = await System.IO.File.ReadAllTextAsync(path);
     return Content(content, "application/json");
 }
+   [HttpGetBypass("2014Mfflag")]
+public async Task<IActionResult> Gettwentiy2014fflags()
+{
+    var path = Path.Combine(Configuration.JsonDataDirectory, "2014ClientAppSettings.json");
+
+    if (!System.IO.File.Exists(path))
+        return NotFound("{}");
+
+    var content = await System.IO.File.ReadAllTextAsync(path);
+    return Content(content, "application/json");
+}
 [HttpGetBypass("universal-app-configuration/v1/behavior-contents")]
 [HttpPostBypass("universal-app-configuration/v1/behavior-contents")]
 public IActionResult GetUniversalBehaviorContents()
