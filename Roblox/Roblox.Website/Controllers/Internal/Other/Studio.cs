@@ -191,13 +191,12 @@ namespace Roblox.Website.Controllers
 
 			HttpContext.Response.Cookies.Append(Middleware.SessionMiddleware.CookieName, sessionCookie, new CookieOptions()
 			{
-                Domain = ".kornet.lat",
-                Secure = false, 
-                HttpOnly = false,
-                Expires = DateTimeOffset.Now.AddDays(364),
-                IsEssential = true,
-                Path = "/",
-                SameSite = SameSiteMode.None, 
+				Domain = ".{Configuration.BaseUrl}",
+				Secure = false,
+				Expires = DateTimeOffset.Now.Add(TimeSpan.FromDays(364)),
+				IsEssential = true,
+				Path = "/",
+				SameSite = SameSiteMode.Lax,
 			});
 			return sessionCookie;
 		}
