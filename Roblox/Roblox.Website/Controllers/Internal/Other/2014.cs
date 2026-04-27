@@ -317,18 +317,18 @@ end)
 
 game:GetService("ChangeHistoryService"):SetEnabled(false)
 game:GetService("ContentProvider"):SetThreadPool(16)
-game:GetService("InsertService"):SetBaseSetsUrl("http://www.roblox.com/Game/Tools/InsertAsset.ashx?nsets=10&type=base")
-game:GetService("InsertService"):SetUserSetsUrl("http://www.roblox.com/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d")
-game:GetService("InsertService"):SetCollectionUrl("http://www.roblox.com/Game/Tools/InsertAsset.ashx?sid=%d")
+game:GetService("InsertService"):SetBaseSetsUrl("http://www.kornet.lat/Game/Tools/InsertAsset.ashx?nsets=10&type=base")
+game:GetService("InsertService"):SetUserSetsUrl("http://www.kornet.lat/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d")
+game:GetService("InsertService"):SetCollectionUrl("http://www.kornet.lat/Game/Tools/InsertAsset.ashx?sid=%d")
 game:GetService("InsertService"):SetAssetUrl("http://www.kornet.lat/asset/?id=%d")
-game:GetService("InsertService"):SetAssetVersionUrl("http://www.roblox.com/Asset/?assetversionid=%d")
+game:GetService("InsertService"):SetAssetVersionUrl("http://www.kornet.lat/Asset/?assetversionid=%d")
 
-pcall(function() game:GetService("SocialService"):SetFriendUrl("http://www.roblox.com/Game/LuaWebService/HandleSocialRequest.ashx?method=IsFriendsWith&playerid=%d&userid=%d") end)
-pcall(function() game:GetService("SocialService"):SetBestFriendUrl("http://www.roblox.com/Game/LuaWebService/HandleSocialRequest.ashx?method=IsBestFriendsWith&playerid=%d&userid=%d") end)
-pcall(function() game:GetService("SocialService"):SetGroupUrl("http://www.roblox.com/Game/LuaWebService/HandleSocialRequest.ashx?method=IsInGroup&playerid=%d&groupid=%d") end)
-pcall(function() game:GetService("SocialService"):SetGroupRankUrl("http://www.roblox.com/Game/LuaWebService/HandleSocialRequest.ashx?method=GetGroupRank&playerid=%d&groupid=%d") end)
-pcall(function() game:GetService("SocialService"):SetGroupRoleUrl("http://www.roblox.com/Game/LuaWebService/HandleSocialRequest.ashx?method=GetGroupRole&playerid=%d&groupid=%d") end)
-pcall(function() game:GetService("GamePassService"):SetPlayerHasPassUrl("http://www.roblox.com/Game/GamePass/GamePassHandler.ashx?Action=HasPass&UserID=%d&PassID=%d") end)
+pcall(function() game:GetService("SocialService"):SetFriendUrl("http://www.kornet.lat/Game/LuaWebService/HandleSocialRequest.ashx?method=IsFriendsWith&playerid=%d&userid=%d") end)
+pcall(function() game:GetService("SocialService"):SetBestFriendUrl("http://www.kornet.lat/Game/LuaWebService/HandleSocialRequest.ashx?method=IsBestFriendsWith&playerid=%d&userid=%d") end)
+pcall(function() game:GetService("SocialService"):SetGroupUrl("http://www.kornet.lat/Game/LuaWebService/HandleSocialRequest.ashx?method=IsInGroup&playerid=%d&groupid=%d") end)
+pcall(function() game:GetService("SocialService"):SetGroupRankUrl("http://www.kornet.lat/Game/LuaWebService/HandleSocialRequest.ashx?method=GetGroupRank&playerid=%d&groupid=%d") end)
+pcall(function() game:GetService("SocialService"):SetGroupRoleUrl("http://www.kornet.lat/Game/LuaWebService/HandleSocialRequest.ashx?method=GetGroupRole&playerid=%d&groupid=%d") end)
+pcall(function() game:GetService("GamePassService"):SetPlayerHasPassUrl("http://www.kornet.lat/Game/GamePass/GamePassHandler.ashx?Action=HasPass&UserID=%d&PassID=%d") end)
 pcall(function() game:GetService("MarketplaceService"):SetProductInfoUrl("https://api.roblox.com/marketplace/productinfo?assetId=%d") end)
 pcall(function() game:GetService("MarketplaceService"):SetPlayerOwnsAssetUrl("https://api.roblox.com/ownership/hasasset?userId=%d&assetId=%d") end)
 pcall(function() game:SetCreatorID(0, Enum.CreatorType.User) end)
@@ -2392,11 +2392,11 @@ local MENU_BTN_LRG = UDim2.new(0, 340, 0, 50)
 local MENU_BTN_SML = UDim2.new(0, 168, 0, 50)
 local STOP_RECORD_IMG = 'rbxasset://textures/ui/RecordStop.png'
 local HELP_IMG = {
-	CLASSIC_MOVE = 'http://www.roblox.com/Asset?id=45915798',
-	SHIFT_LOCK = 'http://www.roblox.com/asset?id=54071825',
-	MOVEMENT = 'http://www.roblox.com/Asset?id=45915811',
-	GEAR = 'http://www.roblox.com/Asset?id=45917596',
-	ZOOM = 'http://www.roblox.com/Asset?id=45915825'
+	CLASSIC_MOVE = 'http://www.kornet.lat/Asset?id=45915798',
+	SHIFT_LOCK = 'http://www.kornet.lat/asset?id=54071825',
+	MOVEMENT = 'http://www.kornet.lat/Asset?id=45915811',
+	GEAR = 'http://www.kornet.lat/Asset?id=45917596',
+	ZOOM = 'http://www.kornet.lat/Asset?id=45915825'
 }
 
 local PC_CHANGED_PROPS = {
