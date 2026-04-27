@@ -466,7 +466,7 @@ local success, err = pcall(function()
 	-- Overriden
 	onPlayerAdded(player)
 	
-	player.CharacterAppearance = ""{Configuration.BaseUrl}/Asset/CharacterFetch.ashx?userId=1&placeId=1""	
+	player.CharacterAppearance = ""{Configuration.BaseUrl}/Asset/CharacterFetch.ashx?userId=46&placeId=1""	
 	if not test then visit:SetUploadUrl("""")end
         player.Name = ""Player""
 		
