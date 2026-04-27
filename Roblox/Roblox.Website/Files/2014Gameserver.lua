@@ -299,7 +299,7 @@ for ii, property in pairs(assetPropertyNames) do
 end
 --game:Load("rbxasset://temp.rbxl")
 game:Load("http://www.kornet.lat/asset?id=9579")
-ns:Start(%port%, sleeptime)
+ns:Start(50, sleeptime)
 pcall(function() game.LocalSaveEnabled = true end)
 
 -- StartGame --
