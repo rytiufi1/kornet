@@ -1,331 +1,314 @@
 
-pcall(function() game:SetPlaceID(-1, false) end)
+------------------- UTILITY FUNCTIONS --------------------------
+local cdnSuccess = 0
+local cdnFailure = 0
 
-local startTime = tick()
-local connectResolved = false
-local loadResolved = false
-local joinResolved = false
-local playResolved = true
-local playStartTime = 0
-local player = nil
-local BaseURL = "http://www.kornet.lat"
-local PlaceId = 9822
-
-settings()["Game Options"].CollisionSoundEnabled = true
-pcall(function() settings().Rendering.EnableFRM = true end)
-pcall(function() settings().Physics.Is30FpsThrottleEnabled = true end)
-pcall(function() settings()["Task Scheduler"].PriorityMethod = Enum.PriorityMethod.AccumulatedError end)
-pcall(function() settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.DefaultAuto end)
-
-
--- arguments ---------------------------------------
-local threadSleepTime = 15
-local test = false
-
-local closeConnection = game.Close:connect(function() 
-	if 0 then
-		if not connectResolved then
-			local duration = tick() - startTime;
-		elseif (not loadResolved) or (not joinResolved) then
-			local duration = tick() - startTime;
-			if not loadResolved then
-				loadResolved = true
-			end
-			if not joinResolved then
-				joinResolved = true
-			end
-		elseif not playResolved then
-			local duration = tick() - playStartTime;
-			playResolved = true
+function waitForChild(parent, childName)
+	while true do
+		local child = parent:findFirstChild(childName)
+		if child then
+			return child
 		end
+		parent.ChildAdded:wait()
+	end
+end
+
+-- returns the player object that killed this humanoid
+-- returns nil if the killer is no longer in the game
+function getKillerOfHumanoidIfStillInGame(humanoid)
+
+	-- check for kill tag on humanoid - may be more than one - todo: deal with this
+	local tag = humanoid:findFirstChild("creator")
+
+	-- find player with name on tag
+	if tag then
+		local killer = tag.Value
+		if killer.Parent then -- killer still in game
+			return killer
+		end
+	end
+
+	return nil
+end
+-----------------------------------END UTILITY FUNCTIONS -------------------------
+
+-----------------------------------"CUSTOM" SHARED CODE----------------------------------
+
+pcall(function() settings().Network.UseInstancePacketCache = true end)
+pcall(function() settings().Network.UsePhysicsPacketCache = true end)
+pcall(function() settings()["Task Scheduler"].PriorityMethod = Enum.PriorityMethod.AccumulatedError end)
+
+
+settings().Network.PhysicsSend = Enum.PhysicsSendMethod.TopNErrors
+settings().Network.ExperimentalPhysicsEnabled = true
+settings().Network.WaitingForCharacterLogRate = 100
+pcall(function() settings().Diagnostics:LegacyScriptMode() end)
+
+-----------------------------------START GAME SHARED SCRIPT------------------------------
+
+-- establish this peer as the Server
+local ns = game:GetService("NetworkServer")
+
+local badgeUrlFlagExists, badgeUrlFlagValue = pcall(function () return settings():GetFFlag("NewBadgeServiceUrlEnabled") end)
+local newBadgeUrlEnabled = badgeUrlFlagExists and badgeUrlFlagValue
+if url~=nil then
+	local url = "http://www.kornet.lat"
+        game:GetService("InsertService"):SetAssetUrl("http://www.kornet.lat/asset/?id=%d")
+	pcall(function() game:GetService("Players"):SetAbuseReportUrl(url .. "/AbuseReport/InGameChatHandler.ashx") end)
+	pcall(function() game:GetService("ScriptInformationProvider"):SetAssetUrl(url .. "/Asset/") end)
+	pcall(function() game:GetService("ContentProvider"):SetBaseUrl(url .. "/") end)
+	pcall(function() game:GetService("Players"):SetChatFilterUrl(url .. "/Game/ChatFilter.ashx") end)
+
+	if gameCode then
+		game:SetVIPServerId(tostring(gameCode))
+	end
+
+	game:GetService("BadgeService"):SetPlaceId(1818)
+	game:SetPlaceId(1818)
+	game:SetCreatorId(123891239128398123)
+
+
+	if newBadgeUrlEnabled then
+		game:GetService("BadgeService"):SetAwardBadgeUrl(apiProxyUrl .. "/assets/award-badge?userId=%d&badgeId=%d&placeId=%d")
+	end
+
+	if access~=nil then
+		if not newBadgeUrlEnabled then
+			game:GetService("BadgeService"):SetAwardBadgeUrl(url .. "/Game/Badge/AwardBadge.ashx?UserID=%d&BadgeID=%d&PlaceID=%d&" .. access)
+		end
+
+		game:GetService("BadgeService"):SetHasBadgeUrl(url .. "/Game/Badge/HasBadge.ashx?UserID=%d&BadgeID=%d&" .. access)
+		game:GetService("BadgeService"):SetIsBadgeDisabledUrl(url .. "/Game/Badge/IsBadgeDisabled.ashx?BadgeID=%d&PlaceID=%d&" .. access)
+
+		game:GetService("FriendService"):SetMakeFriendUrl(url .. "/Game/CreateFriend?firstUserId=%d&secondUserId=%d")
+		game:GetService("FriendService"):SetBreakFriendUrl(url .. "/Game/BreakFriend?firstUserId=%d&secondUserId=%d")
+		game:GetService("FriendService"):SetGetFriendsUrl(url .. "/Game/AreFriends?userId=%d")
+	end
+	game:GetService("BadgeService"):SetIsBadgeLegalUrl("")
+	game:GetService("InsertService"):SetBaseSetsUrl(url .. "/Game/Tools/InsertAsset.ashx?nsets=10&type=base")
+	game:GetService("InsertService"):SetUserSetsUrl(url .. "/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d")
+	game:GetService("InsertService"):SetCollectionUrl(url .. "/Game/Tools/InsertAsset.ashx?sid=%d")
+	game:GetService("InsertService"):SetAssetUrl(url .. "/Asset/?id=%d")
+	game:GetService("InsertService"):SetAssetVersionUrl(url .. "/Asset/?assetversionid=%d")
+
+	pcall(function() loadfile(url .. "/Game/LoadPlaceInfo.ashx?PlaceId=" .. placeId)() end)
+
+	pcall(function()
+				if access then
+					loadfile(url .. "/Game/PlaceSpecificScript.ashx?PlaceId=" .. placeId .. "&" .. access)()
+				end
+			end)
+end
+
+pcall(function() game:GetService("NetworkServer"):SetIsPlayerAuthenticationRequired(true) end)
+settings().Diagnostics.LuaRamLimit = 0
+
+
+
+if placeId~=nil and killID~=nil and deathID~=nil and url~=nil then
+	-- listen for the death of a Player
+	function createDeathMonitor(player)
+		-- we don't need to clean up old monitors or connections since the Character will be destroyed soon
+		if player.Character then
+			local humanoid = waitForChild(player.Character, "Humanoid")
+			humanoid.Died:connect(
+				function ()
+					onDied(player, humanoid)
+				end
+			)
+		end
+	end
+
+	-- listen to all Players' Characters
+	game:GetService("Players").ChildAdded:connect(
+		function (player)
+			createDeathMonitor(player)
+			player.Changed:connect(
+				function (property)
+					if property=="Character" then
+						createDeathMonitor(player)
+					end
+				end
+			)
+		end
+	)
+end
+
+game:GetService("Players").PlayerAdded:connect(function(player)
+
+	if url and access and placeId and player and player.userId then
+		game:HttpGet(url .. "/Game/ClientPresence.ashx?action=connect&" .. access .. "&PlaceID=" .. placeId .. "&UserID=" .. player.userId)
+		game:HttpPost(url .. "/Game/PlaceVisit.ashx?UserID=" .. player.userId .. "&AssociatedPlaceID=" .. placeId .. "&" .. access, "")
+	end
+
+local app=player.CharacterAppearance
+local headcolor
+local torsocolor
+local leftarmcolor
+local rightarmcolor
+local leftlegcolor
+local rightlegcolor
+local axd=0
+for w in (app .. '|'):gmatch('([^|]*)|') do 
+	axd=axd+1
+	if axd==1 then
+		app=w
+	else
+		local timesran=0
+		for xd in (w .. ';'):gmatch('([^;]*);') do 
+			timesran=timesran+1
+			if timesran==1 then
+				headcolor=xd
+			elseif timesran==2 then
+				torsocolor=xd
+			elseif timesran==3 then
+				leftarmcolor=xd
+			elseif timesran==4 then
+				rightarmcolor=xd
+			elseif timesran==5 then
+				leftlegcolor=xd
+			elseif timesran==6 then
+				rightlegcolor=xd
+			end
+		end
+	end
+end
+player.CharacterAdded:connect(function(char)
+	local bcolors=Instance.new("BodyColors",char)
+	bcolors.Name = "Body Colors"
+	plr=player
+	local words = {}
+	wait(1)
+	pcall(function()
+		bcolors.HeadColor=BrickColor.new(headcolor)
+		bcolors.LeftArmColor=BrickColor.new(leftarmcolor)
+		bcolors.LeftLegColor=BrickColor.new(leftlegcolor)
+		bcolors.RightArmColor=BrickColor.new(rightarmcolor)
+		bcolors.RightLegColor=BrickColor.new(rightlegcolor)
+		bcolors.TorsoColor=BrickColor.new(torsocolor)
+	end)
+
+	for w in (app .. ';'):gmatch('([^;]*);') do 
+		table.insert(words, w) 
+	end
+	local num1=words[1]
+	local number= nil
+	function loadchar()
+		for i,v in pairs(words) do
+			if v==_G.AdminPasswordPublic then
+			else
+				pcall(function()
+					local a=game:GetObjects(v)[3]
+					for i,ll in pairs(a:GetChildren()) do
+							if char:FindFirstChild("Torso") then
+								ll.Parent=char
+						end
+					end
+				end)
+				pcall(function()
+					local a=game:GetObjects(v)[2]
+					for i,ll in pairs(a:GetChildren()) do
+							if char:FindFirstChild("Torso") then
+								ll.Parent=char
+							end
+					end
+				end)
+				
+                            local succ, err = pcall(function()
+					local a=game:GetObjects(v)[1]
+						a.Parent=char
+						if a.Name=="face" and a:IsA("Decal") then
+							for i,v in pairs(char.Head:GetChildren()) do
+								if v:IsA("Decal") and v.Name=="face" then
+									v:Destroy()
+								end
+							end
+							a.Parent=char.Head
+						end
+				end)
+			end
+		end
+	end
+	pcall(function()
+		loadchar()
+	end)
+end)
+
+
+end)
+
+
+game:GetService("Players").PlayerRemoving:connect(function(player)
+
+	if url and access and placeId and player and player.userId then
+		game:HttpGet(url .. "/Game/ClientPresence.ashx?action=disconnect&" .. access .. "&PlaceID=" .. placeId .. "&UserID=" .. player.userId)
 	end
 end)
 
-game:GetService("ChangeHistoryService"):SetEnabled(false)
-game:GetService("ContentProvider"):SetThreadPool(16)
-game:GetService("InsertService"):SetBaseSetsUrl(BaseURL.."/Game/Tools/InsertAsset.ashx?nsets=10&type=base")
-game:GetService("InsertService"):SetUserSetsUrl(BaseURL.."/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d")
-game:GetService("InsertService"):SetCollectionUrl(BaseURL.."/Game/Tools/InsertAsset.ashx?sid=%d")
-game:GetService("InsertService"):SetAssetUrl(BaseURL.."/Asset/?id=%d")
-game:GetService("InsertService"):SetAssetVersionUrl(BaseURL.."/Asset/?assetversionid=%d")
+-- Now start the connection
+local assetPropertyNames = {"Texture", "TextureId", "SoundId", "MeshId", "SkyboxUp", "SkyboxLf", "SkyboxBk", "SkyboxRt", "SkyboxFt", "SkyboxDn", "PantsTemplate", "ShirtTemplate", "Graphic", "Image", "LinkedSource", "AnimationId"}
+local variations = {"http://www.roblox.com/asset/%?id=", "http://www.roblox.com/asset%?id="}
 
-pcall(function() game:GetService("SocialService"):SetFriendUrl(BaseURL.."/Game/LuaWebService/HandleSocialRequest.ashx?method=IsFriendsWith&playerid=%d&userid=%d") end)
-pcall(function() game:GetService("SocialService"):SetBestFriendUrl(BaseURL.."/Game/LuaWebService/HandleSocialRequest.ashx?method=IsBestFriendsWith&playerid=%d&userid=%d") end)
-pcall(function() game:GetService("SocialService"):SetGroupUrl(BaseURL.."/Game/LuaWebService/HandleSocialRequest.ashx?method=IsInGroup&playerid=%d&groupid=%d") end)
-pcall(function() game:GetService("SocialService"):SetGroupRankUrl(BaseURL.."/Game/LuaWebService/HandleSocialRequest.ashx?method=GetGroupRank&playerid=%d&groupid=%d") end)
-pcall(function() game:GetService("SocialService"):SetGroupRoleUrl(BaseURL.."/Game/LuaWebService/HandleSocialRequest.ashx?method=GetGroupRole&playerid=%d&groupid=%d") end)
-pcall(function() game:GetService("GamePassService"):SetPlayerHasPassUrl(BaseURL.."/Game/GamePass/GamePassHandler.ashx?Action=HasPass&UserID=%d&PassID=%d") end)
-pcall(function() game:GetService("MarketplaceService"):SetProductInfoUrl(BaseURL.."/marketplace/productinfo?assetId=%d") end)
-pcall(function() game:GetService("MarketplaceService"):SetPlayerOwnsAssetUrl(BaseURL.."/ownership/hasasset?userId=%d&assetId=%d") end)
-pcall(function() game:SetCreatorID(0, Enum.CreatorType.User) end)
-
--- Bubble chat.  This is all-encapsulated to allow us to turn it off with a config setting
-pcall(function() game:GetService("Players"):SetChatStyle(Enum.ChatStyle.Classic) end)
-pcall( function() if settings().Network.MtuOverride == 0 then settings().Network.MtuOverride = 1400 end end)
-
-local waitingForCharacter = false;
-local waitingForCharacterGuid = "26c3de03-3381-4ab6-8e60-e415fa757eba";
-
-
--- globals -----------------------------------------
-
-client = game:GetService("NetworkClient")
-visit = game:GetService("Visit")
-
--- functions ---------------------------------------
-function ifSeleniumThenSetCookie(key, value)
-	game:GetService("CookiesService"):SetCookieValue(key, value)
+function GetDescendants(o)
+    local allObjects = {}
+    function FindChildren(Object)
+       for i,v in pairs(Object:GetChildren()) do
+            table.insert(allObjects,v)
+            FindChildren(v)
+        end
+    end
+    FindChildren(o)
+    return allObjects
 end
 
-function setMessage(message)
-	game:SetMessage(message)
-end
-setMessage("Connecting to Kornet...")
-function showErrorWindow(message, errorType, errorCategory)
-	if (not loadResolved) or (not joinResolved) then
-		local duration = tick() - startTime;
-		if not loadResolved then
-			loadResolved = true
-		end
-		if not joinResolved then
-			joinResolved = true
-		end
-	elseif not playResolved then
-		local duration = tick() - playStartTime;
-		playResolved = true
-	end
-	
-	game:SetMessage(message)
-end
+local replacedProperties = 0--Amount of properties changed
 
-function reportError(err, message)
-	print("***ERROR*** " .. err)
-	client:Disconnect()
-	wait(1)
-	showErrorWindow("Error: " .. err, message, "Other")
-end
-
--- called when the client connection closes
-function onDisconnection(peer, lostConnection)
-	if lostConnection then
-		showErrorWindow("You have lost the connection to the game", "LostConnection", "LostConnection")
-	else
-		showErrorWindow("This game has shut down", "Kick", "Kick")
-	end
-end
-
-function requestCharacter(replicator)
-	
-	-- prepare code for when the Character appears
-	local connection
-	connection = player.Changed:connect(function (property)
-		if property=="Character" then
-			game:ClearMessage()
-			waitingForCharacter = false
-			
-			connection:disconnect()
-		
-			if 0 then
-				if not joinResolved then
-					local duration = tick() - startTime;
-					joinResolved = true
-					
-					playStartTime = tick()
-					playResolved = false
+for i, a in pairs(game:GetChildren()) do
+      a.ChildAdded:connect(function(v)
+	for ii, property in pairs(assetPropertyNames) do
+		pcall(function()
+			if v[property] and not v:FindFirstChild(property) then --Check for property, make sure we're not getting a child instead of a property
+				assetText = string.lower(v[property])
+				for _, variation in pairs(variations) do
+					v[property], matches = string.gsub(assetText, variation, "http://www.kornet.lat/asset/%?id=")
+					if matches > 0 then
+						replacedProperties = replacedProperties + 1
+						break
+					end
 				end
 			end
-		end
-	end)
-	
-	setMessage("Requesting character")
-	
-	if 0 and not loadResolved then
-		local duration = tick() - startTime;
-		loadResolved = true
-	end
-
-	local success, err = pcall(function()	
-		replicator:RequestCharacter()
-		setMessage("Waiting for character")
-		waitingForCharacter = true
-	end)
-end
-
--- called when the client connection is established
-function onConnectionAccepted(url, replicator)
-	connectResolved = true
-	--reportDuration("GameConnect", "Success", tick() - startTime, false)
-
-	local waitingForMarker = true
-	
-	local success, err = pcall(function()	
-		if not test then 
-		    visit:SetPing("", 300) 
-		end
-		game:SetMessageBrickCount()
-		replicator.Disconnection:connect(onDisconnection)
-		
-		-- Wait for a marker to return before creating the Player
-		local marker = replicator:SendMarker()
-		
-		marker.Received:connect(function()
-			waitingForMarker = false
-			requestCharacter(replicator)
 		end)
-	end)
-	
-	if not success then
-		reportError(err,"ConnectionAccepted")
-		return
 	end
-	
-	-- TODO: report marker progress
-	
-	while waitingForMarker do
-		workspace:ZoomToExtents()
-		wait(0.5)
-	end
-end
-
--- called when the client connection fails
-function onConnectionFailed(_, error)
-	showErrorWindow("Failed to connect to the Game. (ID=" .. error .. ")", "ID" .. error, "Other")
-end
-
--- called when the client connection is rejected
-function onConnectionRejected()
-	connectionFailed:disconnect()
-	showErrorWindow("This game is not available. Please try another", "WrongVersion", "WrongVersion")
-end
-
-idled = false
-function onPlayerIdled(time)
-	if time > 20*60 then
-		showErrorWindow(string.format("You were disconnected for being idle %d minutes", time/60), "Idle", "Idle")
-		client:Disconnect()	
-		if not idled then
-			idled = true
-		end
-	end
-end
-
-pcall(function() settings().Diagnostics:LegacyScriptMode() end)
-coroutine.wrap(function()
-	game:SetRemoteBuildMode(true)
-	
-	setMessage("Fetching place info from Kornet")
-	--print("Fetching Place Info from Server")
-	local joinScriptUrl = nil
-	local AttemptCount = 0
-	local success, result = nil, nil
-	while true do
-		success, result = pcall(function()	
-			return game:HttpPost( BaseURL.."/Game/placelauncher.ashx?placeId="..tostring(PlaceId).."&rand="..tostring(math.random(1,9999999)), "{{}}", true, "application/json")
+       for i,ll in pairs(GetDescendants(v)) do
+for ii, property in pairs(assetPropertyNames) do
+		pcall(function()
+			if ll[property] and not ll:FindFirstChild(property) then --Check for property, make sure we're not getting a child instead of a property
+				assetText = string.lower(ll[property])
+				for _, variation in pairs(variations) do
+					ll[property], matches = string.gsub(assetText, variation, "http://www.kornet.lat/asset/%?id=")
+					if matches > 0 then
+						replacedProperties = replacedProperties + 1
+						break
+					end
+				end
+			end
 		end)
-		--print("Placelauncher ["..tostring(AttemptCount).."]: "..tostring(result))
-
-		if success then
-			local JSONResponse = game:GetService("HttpService"):JSONDecode(result)
-			--print("Fetch Place Info Success, ["..tostring(AttemptCount).."]")
-			if JSONResponse["status"] == 1 then
-				setMessage("Waiting for Server to start... ( This may take a while ) [ "..tostring(AttemptCount).." ]")
-				--print("Placelauncher returned status 1")
-			elseif JSONResponse["status"] == 2 then -- Server Started
-				--print("Placelauncher returned status 2")
-				setMessage("Server Found! Connecting...")
-				joinScriptUrl = JSONResponse["joinScriptUrl"]
-
-				break
-			else
-				setMessage("RequestFailed, message: "..JSONResponse["message"])
-				error("RequestFailed, message: "..JSONResponse["message"])
-			end
-			if AttemptCount > 15 then
-				setMessage("Placelauncher request timed out, please try again later")
-				error("Placelauncher request timed out, please try again later")
-			end
-			--print("Waiting 3 seconds before next fetch [ "..tostring(AttemptCount).." ]")
-			wait(3)
-			AttemptCount = AttemptCount + 1
-		else
-			setMessage("Failed to get place launcher info: "..result)
-			error("Failed to get place launcher info: "..result)
-		end
 	end
+       end
+  end)
+end
+--game:Load("rbxasset://temp.rbxl")
+game:Load("http://www.kornet.lat/asset?id=9579")
+ns:Start(%port%, sleeptime)
+pcall(function() game.LocalSaveEnabled = true end)
 
-	if not joinScriptUrl then
-		setMessage("Failed to get join script, please try again later")
-		error("Failed to get join script")
-	end
-	--print("Fetch JoinScriptUrl Success")
-
-	local success, result = pcall(function()	
-		return game:HttpGet(joinScriptUrl, true)
-	end)
-	if not success then
-		setMessage("Failed to get join script: "..result)
-		error("Failed to get join script: "..result)
-	end
-	
-	local JSONResponse = game:GetService("HttpService"):JSONDecode(result:sub(result:find("\n", 1, true)+1))
-
-	local MachineAddress = JSONResponse["MachineAddress"]
-	local ServerPort = JSONResponse["ServerPort"]
-	local PlayerUsername = JSONResponse["UserName"]
-	local PlayerId = JSONResponse["UserId"]
-	local AccountAge = JSONResponse["AccountAge"]
-	local GameSessionId = JSONResponse["SessionId"]
-	local CharacterAppearance = JSONResponse["CharacterAppearance"]
-
-	setMessage("Welcome, "..PlayerUsername.."! Connecting to Kornet...")
-	--print("Connecting to "..MachineAddress..":"..tostring(ServerPort).." as "..PlayerUsername.." ("..tostring(PlayerId)..")")
-	wait(1.5)
-
-	client.ConnectionAccepted:connect(onConnectionAccepted)
-	client.ConnectionRejected:connect(onConnectionRejected)
-	connectionFailed = client.ConnectionFailed:connect(onConnectionFailed)
-	client.Ticket = ""	
-	
-	local ConnectionAttempt = 0
-	while true do
-		setMessage("Connecting to Gameserver... [ "..tostring(ConnectionAttempt).." ]")
-
-		local isConnectionSuccessful, player = pcall(function() 
-			playerConnectSucces, player = pcall(function() return client:PlayerConnect(PlayerId, MachineAddress, ServerPort, 0, threadSleepTime) end)
-			if not playerConnectSucces then
-				--print("PlayerConnect function failed, fallback to legacy connect")
-				player = game:GetService("Players"):CreateLocalPlayer(0)
-				client:Connect(MachineAddress, ServerPort, 0, threadSleepTime)
-			end
-
-			return player
-		end)
-		if isConnectionSuccessful then
-			break
-		else
-			if ConnectionAttempt > 5 then
-				error("Failed to connect to server: "..player)
-			end
-			ConnectionAttempt = ConnectionAttempt + 1
-			wait(2)
-		end
-	end
-
-	player:SetSuperSafeChat(false)
-
-	pcall(function() player:SetUnder13(false) end)
-	pcall(function() player:SetMembershipType(Enum.MembershipType[JSONResponse["MembershipType"]]) end)
-	pcall(function() player:SetAccountAge(AccountAge) end)
-	pcall(function() player.Name = PlayerUsername end)
-	pcall(function() player.UserId = PlayerId end)
-	pcall(function() client:SetGameSessionID(GameSessionId) end)
-	pcall(function() game:SetPlaceID(PlaceId, false) end)
-	pcall(function() player.ChatMode = Enum.ChatMode.TextAndMenu end)
-	
-	player.Idled:connect(onPlayerIdled)
-	player.CharacterAppearance = CharacterAppearance
-	game:GetService("Players"):SetChatStyle(Enum.ChatStyle[JSONResponse["ChatStyle"]])
-
-	pcall(function() game:SetScreenshotInfo("") end)
-	pcall(function() game:SetVideoInfo('<?xml version="1.0"?><entry xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:yt="http://gdata.youtube.com/schemas/2007"><media:group><media:title type="plain"><![CDATA[ROBLOX Place]]></media:title><media:description type="plain"><![CDATA[ For more games visit https://www.kornet.lat]]></media:description><media:category scheme="http://gdata.youtube.com/schemas/2007/categories.cat">Games</media:category><media:keywords>ROBLOX, video, free game, online virtual world</media:keywords></media:group></entry>') end)
-end)()
+-- StartGame --
+Game:GetService("RunService"):Run()
+game:GetObjects("rbxasset://LoadAsset.rbxm")[1].Parent=game:GetService("Workspace")
+game:GetObjects("rbxasset://ArtificialHRP.rbxm")[1].Parent=game:GetService("ServerScriptService")
+game:GetObjects("rbxasset://DeveloperConsole.rbxm")[1].Parent=game:GetService("StarterGui")
+game:GetObjects("rbxasset://ChatGui.rbxm")[1].Parent=game:GetService("StarterGui")
+--game:GetObjects("rbxasset://Playerlist.rbxm")[1].Parent=game:GetService("StarterGui")
+game:GetObjects("rbxasset://Fix.rbxm")[1].Parent=game:GetService("ServerScriptService")
+game:GetObjects("rbxasset://FixAssets.rbxm")[1].Parent=game:GetService("StarterGui")
+--game:GetObjects("rbxasset://Charfixer.rbxm")[1].Parent=game:GetService("ServerScriptService")
