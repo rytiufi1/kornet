@@ -250,6 +250,7 @@ namespace Roblox.Website.Controllers
 					var pxyurl = $"{Configuration.AssetUrl}/asset/?id={assetId}";
 
 					using var httpClient = new HttpClient();
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Roblox/WinInet");
 					httpClient.Timeout = TimeSpan.FromSeconds(10);
 					
 					try
