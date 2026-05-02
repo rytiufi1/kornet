@@ -20,16 +20,16 @@ this guide will be mostly a mix of the original v1, and some things i added.
 
 u need php too i think for site proxy  (i didnt make it unknown did so credits to unknown)
 ## people who made this possible:
-rytiufi (me )
-potato
-syn  (made apk with me and unknown)
-unknown
-bluedevyy
-washedbac (loser vibecoder u can check his code in v1)
-rccservice ( owner of bloxxia )
-yxga ( made launcher)
-danig (old owner of kornet)
-aaron (cool guy fr fr )
+- rytiufi (me )
+- potato
+- syn  (made apk with me and unknown)
+- unknown
+- bluedevyy
+- washedbac (loser vibecoder u can check his code in v1)
+- rccservice ( owner of bloxxia )
+- yxga ( made launcher)
+- danig (old owner of kornet)
+- aaron (cool guy fr fr )
 ## why did kornet shutdown???
 my reputation is absolutely shit and me and unknown were fighting and he quit and from there potato and aaron lost hope on kornet and that lead to this  shutdown (potato and aaron and unknown are making a new rev named madoka 2019 revival gl to them ig )
 ## things that were planned before shutdown
