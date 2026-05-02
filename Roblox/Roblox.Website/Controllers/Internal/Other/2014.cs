@@ -262,8 +262,6 @@ game:SetMessage(""Hosting!"")";
 				{
 					return StatusCode(400, "Valid PlaceID required");
 				}
-				var ticket = Request.Query["ticket"].FirstOrDefault() ?? "";
-                var ticketEncoded = Uri.EscapeDataString(ticket);
 
 				var Script = $@"pcall(function() game:SetPlaceID(-1, false) end)
 
@@ -475,7 +473,7 @@ coroutine.wrap(function()
 	local success, result = nil, nil
 	while true do
 		success, result = pcall(function()	
-			return game:HttpPost( BaseURL..""/Game/join.ashx?placeId=""..tostring(PlaceId)..""&ticket={ticketEncoded}"", ""{{}}"", true, ""application/json"")
+			return game:HttpPost( BaseURL..""/Game/placelauncher.ashx?placeId=""..tostring(PlaceId)..""&rand=""..tostring(math.random(1,9999999)), ""{{}}"", true, ""application/json"")
 		end)
 
 		if success then
