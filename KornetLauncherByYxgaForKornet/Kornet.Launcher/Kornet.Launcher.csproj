@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Kornet</AssemblyName>
+    <RootNamespace>Kornet.Launcher</RootNamespace>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <ApplicationIcon>Assets\appicon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\appicon.ico" />
+    <EmbeddedResource Include="Assets\CancelButton.png" />
+    <EmbeddedResource Include="Assets\CancelButtonHover.png" />
+    <EmbeddedResource Include="..\Kornet.RPC\bin\Release\net6.0\win-x64\publish\KornetRPC.exe">
+      <LogicalName>KornetRPC.exe</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+    <PackageReference Include="System.ValueTuple" Version="4.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kornet.Shared\Kornet.Shared.csproj" />
+  </ItemGroup>
+
+  <Target Name="PublishRPC" BeforeTargets="BeforeBuild">
+    <Exec Command="dotnet publish ..\Kornet.RPC\Kornet.RPC.csproj -c Release -r win-x64 --self-contained false" />
+  </Target>
+
+  <Target Name="PublishLauncher" AfterTargets="Build">
+    <Exec Command="dotnet publish $(MSBuildProjectFile) -c $(Configuration) -r win-x64 --self-contained false /p:PublishSingleFile=true --no-build" />
+    <MakeDir Directories="..\build" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\bin\$(Configuration)\net6.0-windows\win-x64\publish\Kornet.exe"
+          DestinationFolder="..\build"
+          SkipUnchangedFiles="false" />
+  </Target>
+
+</Project>

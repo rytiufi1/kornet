@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../Kornet.RPC/Kornet.RPC.csproj" />
+  <Project Path="../Kornet.Shared/Kornet.Shared.csproj" />
+  <Project Path="Kornet.Launcher.csproj" />
+</Solution>

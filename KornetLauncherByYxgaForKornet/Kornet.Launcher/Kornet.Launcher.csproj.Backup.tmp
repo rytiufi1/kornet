@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Kornet</AssemblyName>
+    <RootNamespace>Kornet.Launcher</RootNamespace>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+	<ApplicationManifest>app.manifest</ApplicationManifest>
+	<ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Assets\appicon.ico" />
+    <None Remove="Assets\CancelButton.png" />
+    <None Remove="Assets\CancelButtonHover.png" />
+    <None Remove="Assets\kornet_logo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+    <PackageReference Include="System.ValueTuple" Version="4.6.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Kornet.Shared\Kornet.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\appicon.ico" />
+    <EmbeddedResource Include="C:\Users\axgy\Documents\KORNET.LAUNCHER\Kornet.RPC\bin\Release\net6.0\win-x64\publish\KornetRPC.exe">
+      <LogicalName>KornetRPC.exe</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\CancelButton.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\CancelButtonHover.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\kornet_logo.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>
