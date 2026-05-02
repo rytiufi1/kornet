@@ -1,3 +1,4 @@
+
 <div align="center">
     <p>
       <h1>Kornet src v2</h1>
@@ -19,16 +20,16 @@ this guide will be mostly a mix of the original v1, and some things i added.
 
 u need to install php for korprxy (i didnt make it unknown did so credits to unknown)
 ## people who made this possible:
-- rytiufi (me)
-- potato (founder)
-- syn  (made apk apis with me and unknown)
-- unknown (made almost the whole src)
-- floatzel (made ecs)
-- harryzawg (made bubbablox which we used and bubba used ecs)
-- washedbac (loser vibecoder u can check his code in v1)
+- rytiufi    (me)
+- potato     (founder)
+- syn        (made apk apis with me and unknown)
+- unknown    (made almost the whole src)
+- floatzel   (made ecs)
+- harryzawg  (made bubbablox which we used and bubba used ecs)
+- washedbac  (loser vibecoder u can check his code in v1)
 - rccservice (owner of bloxxia, made clients work)
-- yxga (made launcher)
-- aaron (cool guy fr fr)
+- yxga       (made launcher)
+- aaron      (cool guy fr fr)
 ## why did kornet shutdown???
 my reputation is absolutely shit and me and unknown were fighting and he quit and from there potato and aaron lost hope on kornet and that lead to this shutdown (potato and aaron and unknown are making a new rev named madoka 2019 revival gl to them ig)
 ## things that were planned before shutdown
@@ -37,10 +38,10 @@ my reputation is absolutely shit and me and unknown were fighting and he quit an
 2023 - studio exe is missing since it was 100 mb+ also studio worked but the local
 rcc wont work for client cuz it was still w.i.p and 2023 client apis werent added yet
 
-migration from 2016 render for assets to 2020 render - already done with avatars but not for assets like accessories etc only ones that render with 2020 are models and videos and animations  r6 and r15 avatars render with 2020! 3d render too
+migration from 2016 render for assets to 2020 render - already done with avatars but not for assets like accessories etc only ones that render with 2020 are models and videos and animations r6 and r15 avatars render with 2020! 3d render too
 (if u dig enough through the commits u will find old tests of the 2020 migration for assets by directly using soap instead of the webserver ecs 2016 render)
 ## why are the subdomains and some parts of the frontend vibecoded and backend??
-unknown was tired and he made some of the subdomains with ai since he was tryna sleep  and some parts of the frontend are vibecoded by washedbac who got fired right after 
+unknown was tired and he made some of the subdomains with ai since he was tryna sleep and some parts of the frontend are vibecoded by washedbac who got fired right after 
 
 ## full guide soon  with launcher src setup and etc 
 here is db (ill soon give schema instead of full db and actually working setup guide soon): https://drive.google.com/file/d/1y1LIa0_TK8Mhpo8YUcFiJg0WqDE4riPt/view?usp=sharing
