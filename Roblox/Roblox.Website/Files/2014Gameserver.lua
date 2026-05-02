@@ -1,26 +1,7 @@
 
-print("Config Load")
-
-local placeId = {PlaceId}
-local port = {NetworkPort}
-local gameId = {PlaceId}
-local CreatorId = {CreatorId}
-local CreatorType = {CreatorType}
-local TempPlaceAccessKey = "{TempPlaceAccessKey}"
-local sleeptime = 1
-local access = "{AuthToken}"
-local JobId = "{JobId}"
-local BaseURL = "http://kornet.lat"
-local BaseDomain = "http://kornet.lat"
-local timeout = 15
-
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local ScriptContext = game:GetService("ScriptContext")
-
-print("Starting server for place "..tostring(placeId).." on port "..tostring(port).." and job id "..JobId)
-
 ------------------- UTILITY FUNCTIONS --------------------------
+local cdnSuccess = 0
+local cdnFailure = 0
 
 function waitForChild(parent, childName)
 	while true do
@@ -32,10 +13,23 @@ function waitForChild(parent, childName)
 	end
 end
 
-function onDied(victim, humanoid)
-	return
-end
+-- returns the player object that killed this humanoid
+-- returns nil if the killer is no longer in the game
+function getKillerOfHumanoidIfStillInGame(humanoid)
 
+	-- check for kill tag on humanoid - may be more than one - todo: deal with this
+	local tag = humanoid:findFirstChild("creator")
+
+	-- find player with name on tag
+	if tag then
+		local killer = tag.Value
+		if killer.Parent then -- killer still in game
+			return killer
+		end
+	end
+
+	return nil
+end
 -----------------------------------END UTILITY FUNCTIONS -------------------------
 
 -----------------------------------"CUSTOM" SHARED CODE----------------------------------
@@ -52,304 +46,269 @@ pcall(function() settings().Diagnostics:LegacyScriptMode() end)
 
 -----------------------------------START GAME SHARED SCRIPT------------------------------
 
-local assetId = placeId -- might be able to remove this now
-
-local scriptContext = game:GetService('ScriptContext')
-scriptContext.ScriptsDisabled = true
-
-local universeId = {UniverseId}
-game:SetPlaceID(assetId, false)
-pcall(function () if universeId ~= nil and universeId > 0 then game:SetUniverseId(universeId) end end)
-pcall(function() game.JobId = JobId end)
-game:GetService("ChangeHistoryService"):SetEnabled(false)
-
-if CreatorType == 1 then
-    CreatorType = Enum.CreatorType.User
-elseif CreatorType == 2 then
-    CreatorType = Enum.CreatorType.Group
-else
-    CreatorType = Enum.CreatorType.User
-end
-
-pcall(function() game:SetCreatorID(CreatorId, CreatorType) end)
-
 -- establish this peer as the Server
 local ns = game:GetService("NetworkServer")
 
 local badgeUrlFlagExists, badgeUrlFlagValue = pcall(function () return settings():GetFFlag("NewBadgeServiceUrlEnabled") end)
 local newBadgeUrlEnabled = badgeUrlFlagExists and badgeUrlFlagValue
-if BaseURL~=nil then
-	local apiProxyUrl = string.gsub(BaseURL, "http://www", "https://api")    -- hack - passing domain (ie "sitetest1.robloxlabs.com") and appending "https://api." to it would be better
+if url~=nil then
+	local url = "http://www.kornet.lat"
+        game:GetService("InsertService"):SetAssetUrl("http://www.kornet.lat/asset/?id=%d")
+	pcall(function() game:GetService("Players"):SetAbuseReportUrl(url .. "/AbuseReport/InGameChatHandler.ashx") end)
+	pcall(function() game:GetService("ScriptInformationProvider"):SetAssetUrl(url .. "/Asset/") end)
+	pcall(function() game:GetService("ContentProvider"):SetBaseUrl(url .. "/") end)
+	pcall(function() game:GetService("Players"):SetChatFilterUrl(url .. "/Game/ChatFilter.ashx") end)
 
-	pcall(function() game:GetService("Players"):SetAbuseReportUrl(BaseURL .. "/AbuseReport/InGameChatHandler.ashx") end)
-	pcall(function() game:GetService("ScriptInformationProvider"):SetAssetUrl(BaseURL .. "/Asset/") end)
-	pcall(function() game:GetService("ContentProvider"):SetBaseUrl(BaseURL .. "/") end)
-	pcall(function() game:GetService("Players"):SetChatFilterUrl(BaseURL .. "/Game/ChatFilter.ashx") end)
-	
 	if gameCode then
 		game:SetVIPServerId(tostring(gameCode))
 	end
 
-	game:GetService("BadgeService"):SetPlaceId(placeId)
+	game:GetService("BadgeService"):SetPlaceId(1818)
+	game:SetPlaceId(1818)
+	game:SetCreatorId(123891239128398123)
+
+
+	if newBadgeUrlEnabled then
+		game:GetService("BadgeService"):SetAwardBadgeUrl(apiProxyUrl .. "/assets/award-badge?userId=%d&badgeId=%d&placeId=%d")
+	end
 
 	if access~=nil then
-		game:GetService("BadgeService"):SetAwardBadgeUrl(BaseURL .. "/Game/Badge/AwardBadge.ashx?UserID=%d&BadgeID=%d&PlaceID=%d")
-		game:GetService("BadgeService"):SetHasBadgeUrl(BaseURL .. "/Game/Badge/HasBadge.ashx?UserID=%d&BadgeID=%d")
-		game:GetService("BadgeService"):SetIsBadgeDisabledUrl(BaseURL .. "/Game/Badge/IsBadgeDisabled.ashx?BadgeID=%d&PlaceID=%d")
+		if not newBadgeUrlEnabled then
+			game:GetService("BadgeService"):SetAwardBadgeUrl(url .. "/Game/Badge/AwardBadge.ashx?UserID=%d&BadgeID=%d&PlaceID=%d&" .. access)
+		end
 
-		game:GetService("FriendService"):SetMakeFriendUrl(BaseURL .. "/Friend/CreateFriend?firstUserId=%d&secondUserId=%d")
-		game:GetService("FriendService"):SetBreakFriendUrl(BaseURL .. "/Friend/BreakFriend?firstUserId=%d&secondUserId=%d")
-		game:GetService("FriendService"):SetGetFriendsUrl(BaseURL .. "/Friend/AreFriends?userId=%d")
-        game:GetService("FriendService"):SetCreateFriendRequestUrl(BaseURL .. "/Friend/CreateFriendRequest?requesterUserId=%d&requestedUserId=%d")
-        game:GetService("FriendService"):SetDeleteFriendRequestUrl(BaseURL .. "/Friend/DeleteFriendRequest?requesterUserId=%d&requestedUserId=%d")
+		game:GetService("BadgeService"):SetHasBadgeUrl(url .. "/Game/Badge/HasBadge.ashx?UserID=%d&BadgeID=%d&" .. access)
+		game:GetService("BadgeService"):SetIsBadgeDisabledUrl(url .. "/Game/Badge/IsBadgeDisabled.ashx?BadgeID=%d&PlaceID=%d&" .. access)
+
+		game:GetService("FriendService"):SetMakeFriendUrl(url .. "/Game/CreateFriend?firstUserId=%d&secondUserId=%d")
+		game:GetService("FriendService"):SetBreakFriendUrl(url .. "/Game/BreakFriend?firstUserId=%d&secondUserId=%d")
+		game:GetService("FriendService"):SetGetFriendsUrl(url .. "/Game/AreFriends?userId=%d")
 	end
 	game:GetService("BadgeService"):SetIsBadgeLegalUrl("")
-	game:GetService("InsertService"):SetBaseSetsUrl(BaseURL .. "/Game/Tools/InsertAsset.ashx?nsets=10&type=base")
-	game:GetService("InsertService"):SetUserSetsUrl(BaseURL .. "/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d")
-	game:GetService("InsertService"):SetCollectionUrl(BaseURL .. "/Game/Tools/InsertAsset.ashx?sid=%d")
-	game:GetService("InsertService"):SetAssetUrl(BaseURL .. "/Asset/?id=%d")
-	game:GetService("InsertService"):SetAssetVersionUrl(BaseURL .. "/Asset/?assetversionid=%d")
+	game:GetService("InsertService"):SetBaseSetsUrl(url .. "/Game/Tools/InsertAsset.ashx?nsets=10&type=base")
+	game:GetService("InsertService"):SetUserSetsUrl(url .. "/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d")
+	game:GetService("InsertService"):SetCollectionUrl(url .. "/Game/Tools/InsertAsset.ashx?sid=%d")
+	game:GetService("InsertService"):SetAssetUrl(url .. "/Asset/?id=%d")
+	game:GetService("InsertService"):SetAssetVersionUrl(url .. "/Asset/?assetversionid=%d")
 
-    game:GetService("Players"):SetSaveDataUrl(BaseURL .. "/persistence/legacy/save?placeId=" .. tostring(placeId) .. "&userId=%d")
-    game:GetService("Players"):SetLoadDataUrl(BaseURL .. "/persistence/legacy/load?placeId=" .. tostring(placeId) .. "&userId=%d")
-	
-	--pcall(function() loadfile(BaseURL .. "/Game/LoadPlaceInfo.ashx?PlaceId=" .. placeId)() end)
-	
-	--pcall(function() 
-	--			if access then
-	--				loadfile(BaseURL .. "/Game/PlaceSpecificScript.ashx?PlaceId=" .. placeId .. "&" .. access)()
-	--			end
-	--		end)
+	pcall(function() loadfile(url .. "/Game/LoadPlaceInfo.ashx?PlaceId=" .. placeId)() end)
+
+	pcall(function()
+				if access then
+					loadfile(url .. "/Game/PlaceSpecificScript.ashx?PlaceId=" .. placeId .. "&" .. access)()
+				end
+			end)
 end
 
---pcall(function() game:GetService("NetworkServer"):SetIsPlayerAuthenticationRequired(true) end)
+pcall(function() game:GetService("NetworkServer"):SetIsPlayerAuthenticationRequired(true) end)
 settings().Diagnostics.LuaRamLimit = 0
-print("Configured Server")
-local StartTime = tick()
-local StoppingServer = false
 
-local function GetPlayerByUserId( userId )
-    for _, player in pairs( Players:GetPlayers() ) do
-        if player.userId == userId then
-            return player
-        end
-    end
-    return nil
+
+
+if placeId~=nil and killID~=nil and deathID~=nil and url~=nil then
+	-- listen for the death of a Player
+	function createDeathMonitor(player)
+		-- we don't need to clean up old monitors or connections since the Character will be destroyed soon
+		if player.Character then
+			local humanoid = waitForChild(player.Character, "Humanoid")
+			humanoid.Died:connect(
+				function ()
+					onDied(player, humanoid)
+				end
+			)
+		end
+	end
+
+	-- listen to all Players' Characters
+	game:GetService("Players").ChildAdded:connect(
+		function (player)
+			createDeathMonitor(player)
+			player.Changed:connect(
+				function (property)
+					if property=="Character" then
+						createDeathMonitor(player)
+					end
+				end
+			)
+		end
+	)
 end
 
-local function ReportServerPlayers(IgnoreThisPlayer)
-    --if StoppingServer then return end
-    local success, message = pcall(function()
-        local PlayerList = {{}}
-        for _, player in pairs(Players:GetChildren()) do
-            if player:IsA("Player") and player ~= IgnoreThisPlayer then
-                table.insert(PlayerList, {{
-                    ["UserId"] = player.userId,
-                    ["Name"] = player.Name
-                }})
-            end
-        end
-        local MessagePayload = HttpService:JSONEncode({{
-            ["AuthToken"] = access,
-            ["JobId"] = JobId,
-            ["Players"] = PlayerList
-        }})
-        local ResponseData = game:HttpPost(BaseURL.."/internal/gameserver/reportplayers", MessagePayload, true, "application/json")
-        local ResponseJSON = HttpService:JSONDecode(ResponseData)
-        for _, player in pairs(ResponseJSON["bad"]) do -- This is a list of players that need to be kicked from the server
-            local TargetPlayer = GetPlayerByUserId(player)
-            if TargetPlayer ~= nil then
-                print("Kicking Player", tostring(player), "because was requested by backend")
-                TargetPlayer:Kick("There was an issue authenticating you, please contact support.")
-                TargetPlayer:Destroy()
-            end
-        end
-    end)
-    if not success then
-        print("ReportServerPlayers failed:", message)
-    end
-end
-
-local function ReportServerStats()
-    if StoppingServer then return end
-    local success, message = pcall(function()
-        local MessagePayload = HttpService:JSONEncode({{
-            ["AuthToken"] = access,
-            ["JobId"] = JobId,
-            ["PlaceId"] = placeId,
-            ["ServerAliveTime"] = (tick() - StartTime) + 1
-        }})
-        game:HttpPost(BaseURL.."/internal/gameserver/reportstats", MessagePayload, false, "application/json")
-    end)
-    if not success then
-        print("ReportServerStats failed:", message)
-    end
-end
-
-local function ReportServerShutdown()
-    local success, message = pcall(function()
-        local MessagePayload = HttpService:JSONEncode({{
-            ["AuthToken"] = access,
-            ["JobId"] = JobId,
-            ["PlaceId"] = placeId,
-            ["ServerAliveTime"] = tick() - StartTime
-        }})
-        game:HttpPost(BaseURL.."/internal/gameserver/reportshutdown", MessagePayload, false, "application/json")
-    end)
-    if not success then
-        print("ReportServerShutdown failed:", message)
-    end
-end
-
-local function AuthenticatePlayer( player )
-    local success, message = pcall(function()
-        local VerificationTicket = string.match( player.CharacterAppearance, BaseDomain.."/Asset/CharacterFetch.ashx%?userId=%d+%&t=(%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x)%&legacy=1$")
-        if VerificationTicket == nil then
-            print("Failed to get VerificationTicket for player", player.Name)
-            return false
-        end
-
-        local MessagePayload = HttpService:JSONEncode({{
-            ["AuthToken"] = access,
-            ["JobId"] = JobId,
-            ["PlaceId"] = placeId,
-            ["ServerAliveTime"] = tick() - StartTime,
-            ["UserId"] = player.userId,
-            ["VerificationTicket"] = VerificationTicket,
-            ["CharacterAppearance"] = player.CharacterAppearance,
-            ["Username"] = player.Name
-        }})
-        local ResponseData = game:HttpPost(BaseURL.."/internal/gameserver/verifyplayer", MessagePayload, true, "application/json")
-        local ResponseJSON = HttpService:JSONDecode(ResponseData)
-        return ResponseJSON["authenticated"]
-    end)
-    if not success then
-        print("AuthenticatePlayer failed:", message)
-        return false
-    end
-    return message
-end
-
-local function ShutdownServer()
-    StoppingServer = true
-    ReportServerShutdown()
-    ScriptContext.ScriptsDisabled = true
-    ns:Stop(1000)
-    game:Shutdown()
-end
-
-local TotalPlayersJoined = 0
 game:GetService("Players").PlayerAdded:connect(function(player)
-    local StartTime = tick()
-    local CharacterURL
-    repeat
-        if string.find(player.CharacterAppearance, BaseDomain.."/Asset/CharacterFetch.ashx%?userId=%d+") then
-            CharacterURL = player.CharacterAppearance
-        end
-        wait(0.1)
-    until CharacterURL ~= nil or tick() - StartTime > 1
-    if CharacterURL == nil then
-        player:Kick("There was an issue authenticating you, please contact support.")
-        print("Failed to get UserId for player", player.Name, "because CharacterURL was nil")
-        return
-    end
 
-    local UserId = tonumber(string.match(CharacterURL, BaseDomain.."/Asset/CharacterFetch.ashx%?userId=(%d+)%&t=%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x%&legacy=1$"))
+	if url and access and placeId and player and player.userId then
+		game:HttpGet(url .. "/Game/ClientPresence.ashx?action=connect&" .. access .. "&PlaceID=" .. placeId .. "&UserID=" .. player.userId)
+		game:HttpPost(url .. "/Game/PlaceVisit.ashx?UserID=" .. player.userId .. "&AssociatedPlaceID=" .. placeId .. "&" .. access, "")
+	end
 
-    if UserId ~= nil then
-        player.userId = UserId
-    else
-        player:Kick("There was an issue authenticating you, please contact support.")
-        print("Failed to get UserId for player", player.Name, CharacterURL)
-        return
-    end
+local app=player.CharacterAppearance
+local headcolor
+local torsocolor
+local leftarmcolor
+local rightarmcolor
+local leftlegcolor
+local rightlegcolor
+local axd=0
+for w in (app .. '|'):gmatch('([^|]*)|') do 
+	axd=axd+1
+	if axd==1 then
+		app=w
+	else
+		local timesran=0
+		for xd in (w .. ';'):gmatch('([^;]*);') do 
+			timesran=timesran+1
+			if timesran==1 then
+				headcolor=xd
+			elseif timesran==2 then
+				torsocolor=xd
+			elseif timesran==3 then
+				leftarmcolor=xd
+			elseif timesran==4 then
+				rightarmcolor=xd
+			elseif timesran==5 then
+				leftlegcolor=xd
+			elseif timesran==6 then
+				rightlegcolor=xd
+			end
+		end
+	end
+end
+player.CharacterAdded:connect(function(char)
+	local bcolors=Instance.new("BodyColors",char)
+	bcolors.Name = "Body Colors"
+	plr=player
+	local words = {}
+	wait(1)
+	pcall(function()
+		bcolors.HeadColor=BrickColor.new(headcolor)
+		bcolors.LeftArmColor=BrickColor.new(leftarmcolor)
+		bcolors.LeftLegColor=BrickColor.new(leftlegcolor)
+		bcolors.RightArmColor=BrickColor.new(rightarmcolor)
+		bcolors.RightLegColor=BrickColor.new(rightlegcolor)
+		bcolors.TorsoColor=BrickColor.new(torsocolor)
+	end)
 
-    local IsPlayerAuthenticated = AuthenticatePlayer(player)
-    if IsPlayerAuthenticated then
-        player.DataComplexityLimit = 1024 * 1024 * 1
-        player.CharacterAppearance = BaseURL.."/Asset/CharacterFetch.ashx?userId="..tostring(player.userId).."&legacy=1"
-        ReportServerPlayers()
-        player:LoadData()
-        TotalPlayersJoined = TotalPlayersJoined + 1
+	for w in (app .. ';'):gmatch('([^;]*);') do 
+		table.insert(words, w) 
+	end
+	local num1=words[1]
+	local number= nil
+	function loadchar()
+		for i,v in pairs(words) do
+			if v==_G.AdminPasswordPublic then
+			else
+				pcall(function()
+					local a=game:GetObjects(v)[3]
+					for i,ll in pairs(a:GetChildren()) do
+							if char:FindFirstChild("Torso") then
+								ll.Parent=char
+						end
+					end
+				end)
+				pcall(function()
+					local a=game:GetObjects(v)[2]
+					for i,ll in pairs(a:GetChildren()) do
+							if char:FindFirstChild("Torso") then
+								ll.Parent=char
+							end
+					end
+				end)
+				
+                            local succ, err = pcall(function()
+					local a=game:GetObjects(v)[1]
+						a.Parent=char
+						if a.Name=="face" and a:IsA("Decal") then
+							for i,v in pairs(char.Head:GetChildren()) do
+								if v:IsA("Decal") and v.Name=="face" then
+									v:Destroy()
+								end
+							end
+							a.Parent=char.Head
+						end
+				end)
+			end
+		end
+	end
+	pcall(function()
+		loadchar()
+	end)
+end)
 
-        local PlayerChangedConnection
-        PlayerChangedConnection = player.Changed:connect(function(property)
-            if property == "Name" then
-                ReportServerPlayers()
-            end
-        end)
 
-        coroutine.wrap(function()
-            while true do
-                wait(120)
-                if StoppingServer then break end
-                if player.Parent == nil then break end
-                pcall(function() player:SaveData() end)
-            end
-        end)()
-    else
-        player:Kick("There was an issue authenticating you, please contact support.")
-        print("Failed to authenticate player", player.Name)
-        return
-    end
 end)
 
 
 game:GetService("Players").PlayerRemoving:connect(function(player)
-	ReportServerPlayers(player)
-    pcall(function() player:SaveData() end)
-    local PlayerCount = #Players:GetPlayers()
-    if PlayerCount == 0 then
-        wait(10) -- Wait 10 seconds to see if anyone rejoins
-        PlayerCount = #Players:GetPlayers()
-        if PlayerCount == 0 then
-            ShutdownServer()
+
+	if url and access and placeId and player and player.userId then
+		game:HttpGet(url .. "/Game/ClientPresence.ashx?action=disconnect&" .. access .. "&PlaceID=" .. placeId .. "&UserID=" .. player.userId)
+	end
+end)
+
+-- Now start the connection
+local assetPropertyNames = {"Texture", "TextureId", "SoundId", "MeshId", "SkyboxUp", "SkyboxLf", "SkyboxBk", "SkyboxRt", "SkyboxFt", "SkyboxDn", "PantsTemplate", "ShirtTemplate", "Graphic", "Image", "LinkedSource", "AnimationId"}
+local variations = {"http://www.roblox.com/asset/%?id=", "http://www.roblox.com/asset%?id="}
+
+function GetDescendants(o)
+    local allObjects = {}
+    function FindChildren(Object)
+       for i,v in pairs(Object:GetChildren()) do
+            table.insert(allObjects,v)
+            FindChildren(v)
         end
     end
-end)
-
-local onlyCallGameLoadWhenInRccWithAccessKey = newBadgeUrlEnabled
-wait()
--- load the game
-print("Loading game")
-
-local success, result = pcall(function()
-    game:Load(BaseURL .. "/asset/?id=" .. placeId.."&access=".. TempPlaceAccessKey)
-end)
-if not success then
-    print("Failed to Load Place File, unsupported file format")
-    local ErrorMessage = Instance.new("Message", workspace)
-    ErrorMessage.Text = "Failed to Load Place File, unsupported file format"
+    FindChildren(o)
+    return allObjects
 end
 
---Players:SetChatStyle(Enum.ChatStyle.ClassicAndBubble)
--- Now start the connection
-ns:Start(port, sleeptime) 
+local replacedProperties = 0--Amount of properties changed
 
-if timeout then
-	scriptContext:SetTimeout(timeout)
+for i, a in pairs(game:GetChildren()) do
+      a.ChildAdded:connect(function(v)
+	for ii, property in pairs(assetPropertyNames) do
+		pcall(function()
+			if v[property] and not v:FindFirstChild(property) then --Check for property, make sure we're not getting a child instead of a property
+				assetText = string.lower(v[property])
+				for _, variation in pairs(variations) do
+					v[property], matches = string.gsub(assetText, variation, "http://www.kornet.lat/asset/%?id=")
+					if matches > 0 then
+						replacedProperties = replacedProperties + 1
+						break
+					end
+				end
+			end
+		end)
+	end
+       for i,ll in pairs(GetDescendants(v)) do
+for ii, property in pairs(assetPropertyNames) do
+		pcall(function()
+			if ll[property] and not ll:FindFirstChild(property) then --Check for property, make sure we're not getting a child instead of a property
+				assetText = string.lower(ll[property])
+				for _, variation in pairs(variations) do
+					ll[property], matches = string.gsub(assetText, variation, "http://www.kornet.lat/asset/%?id=")
+					if matches > 0 then
+						replacedProperties = replacedProperties + 1
+						break
+					end
+				end
+			end
+		end)
+	end
+       end
+  end)
 end
-scriptContext.ScriptsDisabled = false
+--game:Load("rbxasset://temp.rbxl")
+game:Load("http://www.kornet.lat/asset?id=9871")
+ns:Start(50, sleeptime)
+pcall(function() game.LocalSaveEnabled = true end)
 
 -- StartGame --
 Game:GetService("RunService"):Run()
-ReportServerStats()
-
-coroutine.wrap(function()
-    while true do
-        wait(10)
-        if StoppingServer then break end
-        ReportServerStats()
-        ReportServerPlayers()
-    end
-end)()
-
-coroutine.wrap(function()
-    wait(1200) -- Wait 20 heh minutes to check if anyone has joined
-    if TotalPlayersJoined == 0 then
-        print("Stopping server, no players joined past 2 minutes.")
-        ShutdownServer()
-    end
-end)()
-
-pcall(function() Game:GetService("ScriptContext"):AddStarterScript(37801172) end)
+game:GetObjects("rbxasset://LoadAsset.rbxm")[1].Parent=game:GetService("Workspace")
+game:GetObjects("rbxasset://ArtificialHRP.rbxm")[1].Parent=game:GetService("ServerScriptService")
+game:GetObjects("rbxasset://DeveloperConsole.rbxm")[1].Parent=game:GetService("StarterGui")
+game:GetObjects("rbxasset://ChatGui.rbxm")[1].Parent=game:GetService("StarterGui")
+--game:GetObjects("rbxasset://Playerlist.rbxm")[1].Parent=game:GetService("StarterGui")
+game:GetObjects("rbxasset://Fix.rbxm")[1].Parent=game:GetService("ServerScriptService")
+game:GetObjects("rbxasset://FixAssets.rbxm")[1].Parent=game:GetService("StarterGui")
+--game:GetObjects("rbxasset://Charfixer.rbxm")[1].Parent=game:GetService("ServerScriptService")
