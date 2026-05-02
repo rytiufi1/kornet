@@ -22,8 +22,10 @@ u need php too i think for site proxy  (i didnt make it unknown did so credits t
 ## people who made this possible:
 - rytiufi (me )
 - potato
-- syn  (made apk with me and unknown)
-- unknown
+- syn  (made apk apis with me and unknown)
+- unknown (made almost the whole src)
+- floatzel (made ecs)
+- harryzawg (made bubbablox which we used and bubba used ecs)
 - bluedevyy
 - washedbac (loser vibecoder u can check his code in v1)
 - rccservice ( owner of bloxxia )
