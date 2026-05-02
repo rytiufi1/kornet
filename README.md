@@ -42,6 +42,10 @@ migration from 2016 render for assets to 2020 render - already done with avatars
 (if u dig enough through the commits u will find old tests of the 2020 migration for assets by directly using soap instead of the webserver ecs 2016 render)
 ## why are the subdomains and some parts of the frontend vibecoded and backend??
 unknown was tired and he made some of the subdomains with ai since he was tryna sleep and some parts of the frontend are vibecoded by washedbac who got fired right after 
+## cool things with this src:
+- in clientdata.cs theres oauth api for 2023E+
+- theres mobile apis!!!!
+- theres a whole lot other subdomains and other things other source codes dont have
 
 ## full guide soon  with launcher src setup and etc 
 here is db (ill soon give schema instead of full db and actually working setup guide soon): https://drive.google.com/file/d/1y1LIa0_TK8Mhpo8YUcFiJg0WqDE4riPt/view?usp=sharing
