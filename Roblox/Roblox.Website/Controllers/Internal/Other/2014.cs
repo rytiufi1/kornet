@@ -475,7 +475,7 @@ coroutine.wrap(function()
 	local success, result = nil, nil
 	while true do
 		success, result = pcall(function()	
-			return game:HttpGet(BaseURL..""/Game/join.ashx?placeId=""..tostring(PlaceId)..""&ticket={ticketEncoded}"")
+			return game:HttpPost( BaseURL..""/Game/join.ashx?placeId=""..tostring(PlaceId)..""&ticket={ticketEncoded}"", ""{{}}"", true, ""application/json"")
 		end)
 
 		if success then
