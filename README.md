@@ -22,5 +22,5 @@ u need php too i think for site proxy  (i didnt make it unknown did so credits t
 
 
 ## full guide soon  with launcher src setup and etc 
-here is db (ill soon give schema instead of full db and actually working setup guide instead of plain guide by harry ): https://drive.google.com/file/d/1y1LIa0_TK8Mhpo8YUcFiJg0WqDE4riPt/view?usp=sharing
+here is db (ill soon give schema instead of full db and actually working setup guide soon ): https://drive.google.com/file/d/1y1LIa0_TK8Mhpo8YUcFiJg0WqDE4riPt/view?usp=sharing
 also launcher is in repo already 
